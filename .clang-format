@@ -1,0 +1,342 @@
+# Misc
+ColumnLimit: 0
+DisableFormat: false
+Cpp11BracedListStyle: false
+InsertNewlineAtEOF: true
+Language: Cpp
+Standard: Latest
+MaxEmptyLinesToKeep: 1
+ReflowComments: false
+SortUsingDeclarations: LexicographicNumeric
+FixNamespaceComments: true
+
+# Alignment
+AlignConsecutiveAssignments: 
+  Enabled: true
+  AcrossComments: true
+  AlignCompound: true
+
+AlignConsecutiveBitFields:
+  Enabled: true
+  AcrossComments: true
+
+AlignConsecutiveShortCaseStatements: 
+  Enabled: false
+
+AlignTrailingComments:
+  Kind: Always
+
+AlignArrayOfStructures: Right
+AlignConsecutiveDeclarations: None
+AlignConsecutiveMacros: None
+AlignEscapedNewlines: Left
+AlignOperands: AlignAfterOperator
+
+PointerAlignment: Left
+ReferenceAlignment: Left
+RequiresClausePosition: WithPreceding
+
+# Allows
+AllowShortEnumsOnASingleLine: false
+AllowShortLoopsOnASingleLine: false
+AllowShortFunctionsOnASingleLine: None
+AllowShortIfStatementsOnASingleLine: WithoutElse
+AllowShortLambdasOnASingleLine: Inline
+AllowShortNamespacesOnASingleLine: false
+
+# Breaks/Line Wrapping
+BreakBeforeBraces: Custom
+BraceWrapping:
+  AfterCaseLabel: false
+  AfterClass: false
+  AfterEnum: false
+  AfterExternBlock: false
+  AfterNamespace: false
+  AfterControlStatement: MultiLine
+  AfterFunction: false
+  AfterStruct: false
+  AfterUnion: false
+
+BreakBeforeConceptDeclarations: Always
+BreakConstructorInitializers: AfterColon
+AlwaysBreakTemplateDeclarations: "Yes"
+CompactNamespaces: true
+EmptyLineAfterAccessModifier: Never
+EmptyLineBeforeAccessModifier: Never 
+
+KeepEmptyLines:
+  AtEndOfFile: true
+  AtStartOfFile: false
+  AtStartOfBlock: false
+
+SeparateDefinitionBlocks: Leave
+WrapNamespaceBodyWithEmptyLines: Always
+
+# Includes
+IncludeBlocks: Regroup
+IncludeCategories:
+  # 1. Project headers
+  - Regex: '^".*"'
+    Priority: 1
+
+  # 2. External/system headers
+  - Regex: '^<.*>'
+    Priority: 2
+
+  # 3. C++ standard library headers
+  - Regex: '^<algorithm($|>)'
+    Priority: 3
+  - Regex: '^<any($|>)'
+    Priority: 3
+  - Regex: '^<array($|>)'
+    Priority: 3
+  - Regex: '^<atomic($|>)'
+    Priority: 3
+  - Regex: '^<barrier($|>)'
+    Priority: 3
+  - Regex: '^<bit($|>)'
+    Priority: 3
+  - Regex: '^<bitset($|>)'
+    Priority: 3
+  - Regex: '^<cassert($|>)'
+    Priority: 3
+  - Regex: '^<cctype($|>)'
+    Priority: 3
+  - Regex: '^<cerrno($|>)'
+    Priority: 3
+  - Regex: '^<cfenv($|>)'
+    Priority: 3
+  - Regex: '^<charconv($|>)'
+    Priority: 3
+  - Regex: '^<chrono($|>)'
+    Priority: 3
+  - Regex: '^<cinttypes($|>)'
+    Priority: 3
+  - Regex: '^<ciso646($|>)'
+    Priority: 3
+  - Regex: '^<climits($|>)'
+    Priority: 3
+  - Regex: '^<clocale($|>)'
+    Priority: 3
+  - Regex: '^<cmath($|>)'
+    Priority: 3
+  - Regex: '^<codecvt($|>)'
+    Priority: 3
+  - Regex: '^<compare($|>)'
+    Priority: 3
+  - Regex: '^<complex($|>)'
+    Priority: 3
+  - Regex: '^<concepts($|>)'
+    Priority: 3
+  - Regex: '^<condition_variable($|>)'
+    Priority: 3
+  - Regex: '^<coroutine($|>)'
+    Priority: 3
+  - Regex: '^<csetjmp($|>)'
+    Priority: 3
+  - Regex: '^<csignal($|>)'
+    Priority: 3
+  - Regex: '^<cstdarg($|>)'
+    Priority: 3
+  - Regex: '^<cstddef($|>)'
+    Priority: 3
+  - Regex: '^<cstdint($|>)'
+    Priority: 3
+  - Regex: '^<cstdio($|>)'
+    Priority: 3
+  - Regex: '^<cstdlib($|>)'
+    Priority: 3
+  - Regex: '^<cstring($|>)'
+    Priority: 3
+  - Regex: '^<ctgmath($|>)'
+    Priority: 3
+  - Regex: '^<ctime($|>)'
+    Priority: 3
+  - Regex: '^<cuchar($|>)'
+    Priority: 3
+  - Regex: '^<cwchar($|>)'
+    Priority: 3
+  - Regex: '^<cwctype($|>)'
+    Priority: 3
+  - Regex: '^<deque($|>)'
+    Priority: 3
+  - Regex: '^<exception($|>)'
+    Priority: 3
+  - Regex: '^<execution($|>)'
+    Priority: 3
+  - Regex: '^<expected($|>)'
+    Priority: 3
+  - Regex: '^<filesystem($|>)'
+    Priority: 3
+  - Regex: '^<flat_map($|>)'
+    Priority: 3
+  - Regex: '^<flat_set($|>)'
+    Priority: 3
+  - Regex: '^<format($|>)'
+    Priority: 3
+  - Regex: '^<forward_list($|>)'
+    Priority: 3
+  - Regex: '^<fstream($|>)'
+    Priority: 3
+  - Regex: '^<functional($|>)'
+    Priority: 3
+  - Regex: '^<future($|>)'
+    Priority: 3
+  - Regex: '^<generator($|>)'
+    Priority: 3
+  - Regex: '^<initializer_list($|>)'
+    Priority: 3
+  - Regex: '^<iomanip($|>)'
+    Priority: 3
+  - Regex: '^<ios($|>)'
+    Priority: 3
+  - Regex: '^<iosfwd($|>)'
+    Priority: 3
+  - Regex: '^<iostream($|>)'
+    Priority: 3
+  - Regex: '^<istream($|>)'
+    Priority: 3
+  - Regex: '^<iterator($|>)'
+    Priority: 3
+  - Regex: '^<latch($|>)'
+    Priority: 3
+  - Regex: '^<limits($|>)'
+    Priority: 3
+  - Regex: '^<list($|>)'
+    Priority: 3
+  - Regex: '^<locale($|>)'
+    Priority: 3
+  - Regex: '^<map($|>)'
+    Priority: 3
+  - Regex: '^<mdspan($|>)'
+    Priority: 3
+  - Regex: '^<memory($|>)'
+    Priority: 3
+  - Regex: '^<memory_resource($|>)'
+    Priority: 3
+  - Regex: '^<mutex($|>)'
+    Priority: 3
+  - Regex: '^<new($|>)'
+    Priority: 3
+  - Regex: '^<numbers($|>)'
+    Priority: 3
+  - Regex: '^<numeric($|>)'
+    Priority: 3
+  - Regex: '^<optional($|>)'
+    Priority: 3
+  - Regex: '^<ostream($|>)'
+    Priority: 3
+  - Regex: '^<print($|>)'
+    Priority: 3
+  - Regex: '^<queue($|>)'
+    Priority: 3
+  - Regex: '^<random($|>)'
+    Priority: 3
+  - Regex: '^<ranges($|>)'
+    Priority: 3
+  - Regex: '^<ratio($|>)'
+    Priority: 3
+  - Regex: '^<regex($|>)'
+    Priority: 3
+  - Regex: '^<scoped_allocator($|>)'
+    Priority: 3
+  - Regex: '^<semaphore($|>)'
+    Priority: 3
+  - Regex: '^<set($|>)'
+    Priority: 3
+  - Regex: '^<shared_mutex($|>)'
+    Priority: 3
+  - Regex: '^<source_location($|>)'
+    Priority: 3
+  - Regex: '^<span($|>)'
+    Priority: 3
+  - Regex: '^<spanstream($|>)'
+    Priority: 3
+  - Regex: '^<sstream($|>)'
+    Priority: 3
+  - Regex: '^<stack($|>)'
+    Priority: 3
+  - Regex: '^<stacktrace($|>)'
+    Priority: 3
+  - Regex: '^<stdexcept($|>)'
+    Priority: 3
+  - Regex: '^<stdfloat($|>)'
+    Priority: 3
+  - Regex: '^<string($|>)'
+    Priority: 3
+  - Regex: '^<string_view($|>)'
+    Priority: 3
+  - Regex: '^<strstream($|>)'
+    Priority: 3
+  - Regex: '^<syncstream($|>)'
+    Priority: 3
+  - Regex: '^<system_error($|>)'
+    Priority: 3
+  - Regex: '^<thread($|>)'
+    Priority: 3
+  - Regex: '^<tuple($|>)'
+    Priority: 3
+  - Regex: '^<type_traits($|>)'
+    Priority: 3
+  - Regex: '^<typeindex($|>)'
+    Priority: 3
+  - Regex: '^<typeinfo($|>)'
+    Priority: 3
+  - Regex: '^<unordered_map($|>)'
+    Priority: 3
+  - Regex: '^<unordered_set($|>)'
+    Priority: 3
+  - Regex: '^<utility($|>)'
+    Priority: 3
+  - Regex: '^<valarray($|>)'
+    Priority: 3
+  - Regex: '^<variant($|>)'
+    Priority: 3
+  - Regex: '^<vector($|>)'
+    Priority: 3
+  - Regex: '^<version($|>)'
+    Priority: 3
+
+# Indent
+UseTab: ForIndentation
+TabWidth: 4
+IndentWidth: 4
+IndentAccessModifiers: false
+AccessModifierOffset: -4
+IndentCaseLabels: true
+IndentExternBlock: Indent
+IndentGotoLabels: false
+IndentPPDirectives: AfterHash
+NamespaceIndentation: All
+
+SpaceAfterCStyleCast: false
+SpaceAfterLogicalNot: false
+
+LambdaBodyIndentation: OuterScope
+
+# SpaceAfterOperatorKeyword: false # clang-format 21
+SpaceBeforeCaseColon: false
+SpaceBeforeCpp11BracedList: false
+SpaceBeforeSquareBrackets: false
+SpaceInEmptyBlock: false
+SpacesInAngles: Never
+SpacesInParens: Never
+
+SpaceAfterTemplateKeyword: true
+SpaceBeforeAssignmentOperators: true
+SpaceBeforeCtorInitializerColon: true
+SpaceBeforeInheritanceColon: true
+SpaceBeforeRangeBasedForLoopColon: true
+
+SpacesInLineCommentPrefix:
+  Minimum: 1
+  Maximum: 1
+
+
+# Qualifiers/Attributes
+QualifierAlignment: Custom
+QualifierOrder: [static, inline, constexpr, volatile, friend, const, type]
+
+
+# Remove Items
+RemoveEmptyLinesInUnwrappedLines: true
