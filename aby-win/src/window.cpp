@@ -1,6 +1,7 @@
 #include "window.hpp"
 
 #include "backend/glfw/glfw-window.hpp"
+#include "backend/sdl/sdl-window.hpp"
 
 namespace aby::win {
 
@@ -13,6 +14,7 @@ namespace aby::win {
 			case EWindow::glfw:
 				return new glfw::Window(name, w, h, render_backend, theme);
 			case EWindow::sdl:
+				return new sdl::Window(name, w, h, render_backend, theme);
 			default:
 				expect(false, "unimplemented window backend");
 		}
@@ -23,6 +25,7 @@ namespace aby::win {
 			case EWindow::glfw:
 				return std::make_unique<glfw::Window>(name, w, h, render_backend, theme);
 			case EWindow::sdl:
+				return std::make_unique<sdl::Window>(name, w, h, render_backend, theme);
 			default:
 				expect(false, "unimplemented window backend");
 		}
@@ -33,6 +36,7 @@ namespace aby::win {
 			case EWindow::glfw:
 				return std::make_shared<glfw::Window>(name, w, h, render_backend, theme);
 			case EWindow::sdl:
+				return std::make_shared<sdl::Window>(name, w, h, render_backend, theme);
 			default:
 				expect(false, "unimplemented window backend");
 		}

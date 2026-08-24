@@ -9,6 +9,7 @@ add_library(${PROJECT_NAME}
     src/log.cpp
     src/window.cpp
     src/backend/glfw/glfw-window.cpp
+    src/backend/sdl/sdl-window.cpp
     include/aby-win/log.hpp
     include/aby-win/typedefs.hpp
     include/aby-win/common.hpp
@@ -26,7 +27,7 @@ PRIVATE
     ${VENDOR_DIR}/SDL/include
 )
 
-target_link_libraries(${PROJECT_NAME} PRIVATE glfw)
+target_link_libraries(${PROJECT_NAME} PRIVATE glfw SDL3::SDL3)
 
 target_compile_options(${PROJECT_NAME} PRIVATE
     $<$<CXX_COMPILER_ID:MSVC>:/WX /Zc:preprocessor>

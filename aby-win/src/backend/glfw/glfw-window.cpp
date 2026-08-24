@@ -1,5 +1,4 @@
 #include "backend/glfw/glfw-window.hpp"
-
 #ifdef _WIN32
 #	define GLFW_EXPOSE_NATIVE_WIN32
 #	include <dwmapi.h>
@@ -20,34 +19,37 @@
 
 namespace aby::win::glfw::detail {
 
-	auto err_callback(int error_code, const char* description) -> void {
-		log_err("[glfw] ({}): {}", error_code, description);
-	}
-#ifdef _WIN32
-	auto system_dark_theme() -> bool {
-		DWORD value = 1;
-		DWORD size  = sizeof(value);
+	auto window_pos_callback(GLFWwindow* window, int x, int y) -> void;
+	auto window_size_callback(GLFWwindow* window, int width, int height) -> void;
+	auto window_close_callback(GLFWwindow* window) -> void;
+	auto window_refresh_callback(GLFWwindow* window) -> void;
+	auto window_focus_callback(GLFWwindow* window, int focused) -> void;
+	auto window_iconify_callback(GLFWwindow* window, int iconified) -> void;
+	auto window_maximize_callback(GLFWwindow* window, int maximized) -> void;
+	auto framebuffer_size_callback(GLFWwindow* window, int width, int height) -> void;
+	auto window_content_scale_callback(GLFWwindow* window, float xscale, float yscale) -> void;
+	auto key_callback(GLFWwindow* window, int key, int scancode, int action, int mods) -> void;
+	auto mouse_button_callback(GLFWwindow* window, int button, int action, int mods) -> void;
+	auto char_callback(GLFWwindow* window, unsigned int codepoint) -> void;
+	auto cursor_enter_callback(GLFWwindow* window, int entered) -> void;
+	auto scroll_callback(GLFWwindow* window, double xoffset, double yoffset) -> void;
+	auto cursor_pos_callback(GLFWwindow* window, double x, double y) -> void;
+	auto drop_callback(GLFWwindow* window, int count, const char** paths) -> void;
+	auto err_callback(int error_code, const char* description) -> void;
 
-		constexpr auto key =
-		    L"Software\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize";
+	auto system_dark_theme() -> bool;
+	auto get_listeners(GLFWwindow* window) -> std::span<WindowListener>;
+	auto to_key(int key) -> EKey;
+	auto to_mods(int mods) -> EMod;
+	auto to_mouse_button(int button) -> EMouseButton;
 
-		constexpr auto name = L"AppsUseLightTheme";
-
-		if (RegGetValueW(
-		        HKEY_CURRENT_USER,
-		        key,
-		        name,
-		        RRF_RT_REG_DWORD,
-		        nullptr,
-		        &value,
-		        &size) != ERROR_SUCCESS) {
-			// Default to light if the setting cannot be queried.
-			return false;
+	template <typename T>
+	auto dispatch(GLFWwindow* window, T& event) -> void {
+		for (auto& listener : get_listeners(window)) {
+			if (listener(event))
+				break;
 		}
-
-		return value == 0;
 	}
-#endif
 
 } // namespace aby::win::glfw::detail
 
@@ -77,13 +79,32 @@ namespace aby::win::glfw {
 			return;
 		}
 
+		glfwSetWindowUserPointer(m_GLFW, this);
+		glfwSetWindowPosCallback(m_GLFW, &detail::window_pos_callback);
+		glfwSetWindowSizeCallback(m_GLFW, &detail::window_size_callback);
+		glfwSetWindowCloseCallback(m_GLFW, &detail::window_close_callback);
+		glfwSetWindowRefreshCallback(m_GLFW, &detail::window_refresh_callback);
+		glfwSetWindowFocusCallback(m_GLFW, &detail::window_focus_callback);
+		glfwSetWindowIconifyCallback(m_GLFW, &detail::window_iconify_callback);
+		glfwSetWindowMaximizeCallback(m_GLFW, &detail::window_maximize_callback);
+		glfwSetFramebufferSizeCallback(m_GLFW, &detail::framebuffer_size_callback);
+		glfwSetWindowContentScaleCallback(m_GLFW, &detail::window_content_scale_callback);
+		glfwSetKeyCallback(m_GLFW, &detail::key_callback);
+		glfwSetCharCallback(m_GLFW, &detail::char_callback);
+		glfwSetMouseButtonCallback(m_GLFW, &detail::mouse_button_callback);
+		glfwSetCursorPosCallback(m_GLFW, &detail::cursor_pos_callback);
+		glfwSetCursorEnterCallback(m_GLFW, &detail::cursor_enter_callback);
+		glfwSetScrollCallback(m_GLFW, &detail::scroll_callback);
+		glfwSetDropCallback(m_GLFW, &detail::drop_callback);
 		set_theme(theme);
 	}
 
 	Window::~Window() {
-		glfwDestroyWindow(m_GLFW);
+		if (m_GLFW) {
+			glfwDestroyWindow(m_GLFW);
+			m_GLFW = nullptr;
+		}
 		glfwTerminate();
-		m_GLFW = nullptr;
 	}
 
 	auto Window::set_name(std::string_view name) -> void {
@@ -101,6 +122,44 @@ namespace aby::win::glfw {
 
 	auto Window::set_size(u32 w, u32 h) -> void {
 		glfwSetWindowSize(m_GLFW, w, h);
+	}
+
+	auto Window::set_position(i32 x, i32 y) -> void {
+		glfwSetWindowPos(m_GLFW, x, y);
+	}
+
+	auto Window::set_fullscreen(bool fullscreen) -> void {
+		if (this->fullscreened() == fullscreen) {
+			return;
+		}
+
+		if (fullscreen) {
+			std::tie(m_WindowedX, m_WindowedY)          = position();
+			std::tie(m_WindowedWidth, m_WindowedHeight) = size();
+
+			GLFWmonitor* monitor = glfwGetPrimaryMonitor();
+			if (!monitor) {
+				log_err("[glfw] failed to get primary monitor");
+				return;
+			}
+
+			const GLFWvidmode* mode = glfwGetVideoMode(monitor);
+			if (!mode) {
+				log_err("[glfw] failed to get primary monitor video mode");
+				return;
+			}
+
+			glfwSetWindowMonitor(m_GLFW, monitor, 0, 0, mode->width, mode->height, mode->refreshRate);
+		} else {
+			glfwSetWindowMonitor(
+			    m_GLFW,
+			    nullptr,
+			    m_WindowedX,
+			    m_WindowedY,
+			    m_WindowedWidth,
+			    m_WindowedHeight,
+			    0);
+		}
 	}
 
 	auto Window::set_cursor_mode(ECursorMode mode) -> void {
@@ -147,6 +206,10 @@ namespace aby::win::glfw {
 #endif
 	}
 
+	auto Window::add_listener(WindowListener&& listener) -> void {
+		m_Listeners.push_back(std::move(listener));
+	}
+
 	auto Window::focus() -> void {
 		glfwFocusWindow(m_GLFW);
 	}
@@ -172,21 +235,27 @@ namespace aby::win::glfw {
 	}
 
 	auto Window::width() const -> u32 {
-		int w, h;
+		i32 w, h;
 		glfwGetWindowSize(m_GLFW, &w, &h);
 		return w;
 	}
 
 	auto Window::height() const -> u32 {
-		int w, h;
+		i32 w, h;
 		glfwGetWindowSize(m_GLFW, &w, &h);
 		return h;
 	}
 
 	auto Window::size() const -> std::pair<u32, u32> {
-		int w, h;
+		i32 w, h;
 		glfwGetWindowSize(m_GLFW, &w, &h);
 		return std::make_pair<u32, u32>(w, h);
+	}
+
+	auto Window::position() const -> std::pair<i32, i32> {
+		i32 x, y;
+		glfwGetWindowPos(m_GLFW, &x, &y);
+		return std::make_pair(x, y);
 	}
 
 	auto Window::scale() const -> float {
@@ -216,41 +285,49 @@ namespace aby::win::glfw {
 	}
 
 	auto Window::fb_width() const -> u32 {
-		int w, h;
+		i32 w, h;
 		glfwGetFramebufferSize(m_GLFW, &w, &h);
 		return static_cast<u32>(w);
 	}
 
 	auto Window::fb_height() const -> u32 {
-		int w, h;
+		i32 w, h;
 		glfwGetFramebufferSize(m_GLFW, &w, &h);
 		return static_cast<u32>(h);
 	}
 
 	auto Window::fb_size() const -> std::pair<u32, u32> {
-		int w, h;
+		i32 w, h;
 		glfwGetFramebufferSize(m_GLFW, &w, &h);
 		return std::make_pair<u32, u32>(w, h);
 	}
 
+	auto Window::listeners() -> std::span<WindowListener> {
+		return m_Listeners;
+	}
+
 	auto Window::focused() const -> bool {
-		int value = glfwGetWindowAttrib(m_GLFW, GLFW_FOCUSED);
+		i32 value = glfwGetWindowAttrib(m_GLFW, GLFW_FOCUSED);
 		return value == GLFW_TRUE;
 	}
 
 	auto Window::minimized() const -> bool {
-		int value = glfwGetWindowAttrib(m_GLFW, GLFW_ICONIFIED);
+		i32 value = glfwGetWindowAttrib(m_GLFW, GLFW_ICONIFIED);
 		return value == GLFW_TRUE;
 	}
 
 	auto Window::maximized() const -> bool {
-		int value = glfwGetWindowAttrib(m_GLFW, GLFW_MAXIMIZED);
+		i32 value = glfwGetWindowAttrib(m_GLFW, GLFW_MAXIMIZED);
 		return value == GLFW_TRUE;
 	}
 
 	auto Window::visible() const -> bool {
-		int value = glfwGetWindowAttrib(m_GLFW, GLFW_VISIBLE);
+		i32 value = glfwGetWindowAttrib(m_GLFW, GLFW_VISIBLE);
 		return value == GLFW_TRUE;
+	}
+
+	auto Window::fullscreened() -> bool {
+		return glfwGetWindowMonitor(m_GLFW) != nullptr;
 	}
 
 	auto Window::should_close() const -> bool {
@@ -258,3 +335,428 @@ namespace aby::win::glfw {
 	}
 
 } // namespace aby::win::glfw
+
+namespace aby::win::glfw::detail {
+
+	auto err_callback(int error_code, const char* description) -> void {
+		log_err("[glfw] ({}): {}", error_code, description);
+	}
+
+	auto system_dark_theme() -> bool {
+#ifdef _WIN32
+		DWORD value         = 1;
+		DWORD size          = sizeof(value);
+		constexpr auto key  = L"Software\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize";
+		constexpr auto name = L"AppsUseLightTheme";
+
+		if (RegGetValueW(
+		        HKEY_CURRENT_USER,
+		        key,
+		        name,
+		        RRF_RT_REG_DWORD,
+		        nullptr,
+		        &value,
+		        &size) != ERROR_SUCCESS) {
+			// default to light if the setting cannot be queried.
+			return false;
+		}
+
+		return value == 0;
+#endif
+		return false;
+	}
+
+	auto window_pos_callback(GLFWwindow* window, int x, int y) -> void {
+		WindowMovedEvent event(x, y);
+		dispatch(window, event);
+	}
+
+	auto window_size_callback(GLFWwindow* window, int width, int height) -> void {
+		WindowResizedEvent event(static_cast<u32>(width), static_cast<u32>(height));
+		dispatch(window, event);
+	}
+
+	auto window_close_callback(GLFWwindow* window) -> void {
+		WindowClosedEvent event;
+		dispatch(window, event);
+	}
+
+	auto window_refresh_callback(GLFWwindow* window) -> void {
+		WindowRefreshedEvent event;
+		dispatch(window, event);
+	}
+
+	auto window_focus_callback(GLFWwindow* window, int focused) -> void {
+		WindowFocusedEvent event(focused == GLFW_TRUE);
+		dispatch(window, event);
+	}
+
+	auto window_iconify_callback(GLFWwindow* window, int iconified) -> void {
+		WindowMinimizedEvent event(iconified == GLFW_TRUE);
+		dispatch(window, event);
+	}
+
+	auto window_maximize_callback(GLFWwindow* window, int maximized) -> void {
+		WindowMaximizedEvent event(maximized == GLFW_TRUE);
+		dispatch(window, event);
+	}
+
+	auto framebuffer_size_callback(GLFWwindow* window, int width, int height) -> void {
+		WindowFramebufferResizedEvent event(static_cast<u32>(width), static_cast<u32>(height));
+		dispatch(window, event);
+	}
+
+	auto window_content_scale_callback(GLFWwindow* window, float xscale, float yscale) -> void {
+		WindowScaledEvent event(xscale, yscale);
+		dispatch(window, event);
+	}
+
+	auto key_callback(GLFWwindow* window, int key, int scancode, int action, int mods) -> void {
+		auto ekey = to_key(key);
+		auto emod = to_mods(mods);
+
+		switch (action) {
+			case GLFW_PRESS: {
+				KeyPressedEvent event(ekey, emod);
+				dispatch(window, event);
+				break;
+			}
+
+			case GLFW_RELEASE: {
+				KeyReleasedEvent event(ekey, emod);
+				dispatch(window, event);
+				break;
+			}
+
+			case GLFW_REPEAT: {
+				KeyPressedEvent event(ekey, emod);
+				dispatch(window, event);
+				break;
+			}
+		}
+	}
+
+	auto mouse_button_callback(GLFWwindow* window, int button, int action, int mods) -> void {
+		auto ebutton = to_mouse_button(button);
+		auto emod    = to_mods(mods);
+
+		switch (action) {
+			case GLFW_PRESS: {
+				MousePressedEvent event(ebutton, emod);
+				dispatch(window, event);
+				break;
+			}
+
+			case GLFW_RELEASE: {
+				MouseReleasedEvent event(ebutton, emod);
+				dispatch(window, event);
+				break;
+			}
+		}
+	}
+
+	auto char_callback(GLFWwindow* window, unsigned int codepoint) -> void {
+		KeyTypedEvent event(static_cast<char32_t>(codepoint));
+		dispatch(window, event);
+	}
+
+	auto cursor_enter_callback(GLFWwindow* window, int entered) -> void {
+		if (entered == GLFW_TRUE) {
+			MouseEnteredEvent event;
+			dispatch(window, event);
+		} else {
+			MouseLeftEvent event;
+			dispatch(window, event);
+		}
+	}
+
+	auto scroll_callback(GLFWwindow* window, double xoffset, double yoffset) -> void {
+		MouseScrolledEvent event(static_cast<float>(xoffset), static_cast<float>(yoffset));
+		dispatch(window, event);
+	}
+
+	auto cursor_pos_callback(GLFWwindow* window, double x, double y) -> void {
+		MouseMovedEvent event(static_cast<float>(x), static_cast<float>(y));
+
+		dispatch(window, event);
+	}
+
+	auto drop_callback(GLFWwindow* window, int count, const char** paths) -> void {
+		for (int i = 0; i < count; ++i) {
+			const char* path = paths[i];
+			auto fpath       = std::filesystem::path(path);
+			FileDroppedEvent event(fpath);
+			dispatch(window, event);
+		}
+	}
+
+	auto get_listeners(GLFWwindow* window) -> std::span<WindowListener> {
+		auto* win = static_cast<Window*>(glfwGetWindowUserPointer(window));
+		return win->listeners();
+	}
+
+	auto to_key(int key) -> EKey {
+		switch (key) {
+			case GLFW_KEY_A:
+				return EKey::a;
+			case GLFW_KEY_B:
+				return EKey::b;
+			case GLFW_KEY_C:
+				return EKey::c;
+			case GLFW_KEY_D:
+				return EKey::d;
+			case GLFW_KEY_E:
+				return EKey::e;
+			case GLFW_KEY_F:
+				return EKey::f;
+			case GLFW_KEY_G:
+				return EKey::g;
+			case GLFW_KEY_H:
+				return EKey::h;
+			case GLFW_KEY_I:
+				return EKey::i;
+			case GLFW_KEY_J:
+				return EKey::j;
+			case GLFW_KEY_K:
+				return EKey::k;
+			case GLFW_KEY_L:
+				return EKey::l;
+			case GLFW_KEY_M:
+				return EKey::m;
+			case GLFW_KEY_N:
+				return EKey::n;
+			case GLFW_KEY_O:
+				return EKey::o;
+			case GLFW_KEY_P:
+				return EKey::p;
+			case GLFW_KEY_Q:
+				return EKey::q;
+			case GLFW_KEY_R:
+				return EKey::r;
+			case GLFW_KEY_S:
+				return EKey::s;
+			case GLFW_KEY_T:
+				return EKey::t;
+			case GLFW_KEY_U:
+				return EKey::u;
+			case GLFW_KEY_V:
+				return EKey::v;
+			case GLFW_KEY_W:
+				return EKey::w;
+			case GLFW_KEY_X:
+				return EKey::x;
+			case GLFW_KEY_Y:
+				return EKey::y;
+			case GLFW_KEY_Z:
+				return EKey::z;
+			case GLFW_KEY_0:
+				return EKey::num_0;
+			case GLFW_KEY_1:
+				return EKey::num_1;
+			case GLFW_KEY_2:
+				return EKey::num_2;
+			case GLFW_KEY_3:
+				return EKey::num_3;
+			case GLFW_KEY_4:
+				return EKey::num_4;
+			case GLFW_KEY_5:
+				return EKey::num_5;
+			case GLFW_KEY_6:
+				return EKey::num_6;
+			case GLFW_KEY_7:
+				return EKey::num_7;
+			case GLFW_KEY_8:
+				return EKey::num_8;
+			case GLFW_KEY_9:
+				return EKey::num_9;
+			case GLFW_KEY_F1:
+				return EKey::f1;
+			case GLFW_KEY_F2:
+				return EKey::f2;
+			case GLFW_KEY_F3:
+				return EKey::f3;
+			case GLFW_KEY_F4:
+				return EKey::f4;
+			case GLFW_KEY_F5:
+				return EKey::f5;
+			case GLFW_KEY_F6:
+				return EKey::f6;
+			case GLFW_KEY_F7:
+				return EKey::f7;
+			case GLFW_KEY_F8:
+				return EKey::f8;
+			case GLFW_KEY_F9:
+				return EKey::f9;
+			case GLFW_KEY_F10:
+				return EKey::f10;
+			case GLFW_KEY_F11:
+				return EKey::f11;
+			case GLFW_KEY_F12:
+				return EKey::f12;
+			case GLFW_KEY_LEFT_SHIFT:
+				return EKey::left_shift;
+			case GLFW_KEY_RIGHT_SHIFT:
+				return EKey::right_shift;
+			case GLFW_KEY_LEFT_CONTROL:
+				return EKey::left_ctrl;
+			case GLFW_KEY_RIGHT_CONTROL:
+				return EKey::right_ctrl;
+			case GLFW_KEY_LEFT_ALT:
+				return EKey::left_alt;
+			case GLFW_KEY_RIGHT_ALT:
+				return EKey::right_alt;
+			case GLFW_KEY_LEFT_SUPER:
+				return EKey::left_super;
+			case GLFW_KEY_RIGHT_SUPER:
+				return EKey::right_super;
+			case GLFW_KEY_UP:
+				return EKey::up;
+			case GLFW_KEY_DOWN:
+				return EKey::down;
+			case GLFW_KEY_LEFT:
+				return EKey::left;
+			case GLFW_KEY_RIGHT:
+				return EKey::right;
+			case GLFW_KEY_HOME:
+				return EKey::home;
+			case GLFW_KEY_END:
+				return EKey::end;
+			case GLFW_KEY_PAGE_UP:
+				return EKey::page_up;
+			case GLFW_KEY_PAGE_DOWN:
+				return EKey::page_down;
+			case GLFW_KEY_INSERT:
+				return EKey::insert;
+			case GLFW_KEY_DELETE:
+				return EKey::del;
+			case GLFW_KEY_BACKSPACE:
+				return EKey::backspace;
+			case GLFW_KEY_ENTER:
+				return EKey::enter;
+			case GLFW_KEY_TAB:
+				return EKey::tab;
+			case GLFW_KEY_ESCAPE:
+				return EKey::escape;
+			case GLFW_KEY_SPACE:
+				return EKey::space;
+			case GLFW_KEY_APOSTROPHE:
+				return EKey::apostrophe;
+			case GLFW_KEY_COMMA:
+				return EKey::comma;
+			case GLFW_KEY_MINUS:
+				return EKey::minus;
+			case GLFW_KEY_PERIOD:
+				return EKey::period;
+			case GLFW_KEY_SLASH:
+				return EKey::slash;
+			case GLFW_KEY_SEMICOLON:
+				return EKey::semicolon;
+			case GLFW_KEY_EQUAL:
+				return EKey::equal;
+			case GLFW_KEY_LEFT_BRACKET:
+				return EKey::left_bracket;
+			case GLFW_KEY_BACKSLASH:
+				return EKey::backslash;
+			case GLFW_KEY_RIGHT_BRACKET:
+				return EKey::right_bracket;
+			case GLFW_KEY_GRAVE_ACCENT:
+				return EKey::grave_accent;
+			case GLFW_KEY_CAPS_LOCK:
+				return EKey::caps_lock;
+			case GLFW_KEY_NUM_LOCK:
+				return EKey::num_lock;
+			case GLFW_KEY_SCROLL_LOCK:
+				return EKey::scroll_lock;
+			case GLFW_KEY_KP_0:
+				return EKey::kp_0;
+			case GLFW_KEY_KP_1:
+				return EKey::kp_1;
+			case GLFW_KEY_KP_2:
+				return EKey::kp_2;
+			case GLFW_KEY_KP_3:
+				return EKey::kp_3;
+			case GLFW_KEY_KP_4:
+				return EKey::kp_4;
+			case GLFW_KEY_KP_5:
+				return EKey::kp_5;
+			case GLFW_KEY_KP_6:
+				return EKey::kp_6;
+			case GLFW_KEY_KP_7:
+				return EKey::kp_7;
+			case GLFW_KEY_KP_8:
+				return EKey::kp_8;
+			case GLFW_KEY_KP_9:
+				return EKey::kp_9;
+			case GLFW_KEY_KP_DECIMAL:
+				return EKey::kp_decimal;
+			case GLFW_KEY_KP_DIVIDE:
+				return EKey::kp_divide;
+			case GLFW_KEY_KP_MULTIPLY:
+				return EKey::kp_multiply;
+			case GLFW_KEY_KP_SUBTRACT:
+				return EKey::kp_subtract;
+			case GLFW_KEY_KP_ADD:
+				return EKey::kp_add;
+			case GLFW_KEY_KP_ENTER:
+				return EKey::kp_enter;
+			case GLFW_KEY_KP_EQUAL:
+				return EKey::kp_equal;
+			case GLFW_KEY_PRINT_SCREEN:
+				return EKey::print_screen;
+			case GLFW_KEY_PAUSE:
+				return EKey::pause;
+			case GLFW_KEY_MENU:
+				return EKey::menu;
+			default:
+				return EKey::unknown;
+		}
+	}
+
+	auto to_mods(int mods) -> EMod {
+		EMod out = EMod::none;
+
+		if (mods & GLFW_MOD_SHIFT)
+			out |= EMod::shift;
+
+		if (mods & GLFW_MOD_CONTROL)
+			out |= EMod::ctrl;
+
+		if (mods & GLFW_MOD_ALT)
+			out |= EMod::alt;
+
+		if (mods & GLFW_MOD_SUPER)
+			out |= EMod::super;
+
+		if (mods & GLFW_MOD_CAPS_LOCK)
+			out |= EMod::caps_lock;
+
+		if (mods & GLFW_MOD_NUM_LOCK)
+			out |= EMod::num_lock;
+
+		return out;
+	}
+
+	auto to_mouse_button(int button) -> EMouseButton {
+		switch (button) {
+			case GLFW_MOUSE_BUTTON_LEFT:
+				return EMouseButton::left;
+			case GLFW_MOUSE_BUTTON_RIGHT:
+				return EMouseButton::right;
+			case GLFW_MOUSE_BUTTON_MIDDLE:
+				return EMouseButton::middle;
+			case GLFW_MOUSE_BUTTON_4:
+				return EMouseButton::button_4;
+			case GLFW_MOUSE_BUTTON_5:
+				return EMouseButton::button_5;
+			case GLFW_MOUSE_BUTTON_6:
+				return EMouseButton::button_6;
+			case GLFW_MOUSE_BUTTON_7:
+				return EMouseButton::button_7;
+			case GLFW_MOUSE_BUTTON_8:
+				return EMouseButton::button_8;
+			default:
+				return EMouseButton::none;
+		}
+	}
+
+} // namespace aby::win::glfw::detail

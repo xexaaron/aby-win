@@ -1,12 +1,11 @@
 #pragma once
-
 #include "window.hpp"
 
 #include <span>
 
-struct GLFWwindow;
+struct SDL_Window;
 
-namespace aby::win::glfw {
+namespace aby::win::sdl {
 
 	class Window : public win::Window {
 	public:
@@ -48,13 +47,18 @@ namespace aby::win::glfw {
 		auto visible() const -> bool override;
 		auto fullscreened() -> bool override;
 		auto should_close() const -> bool override;
+
+		template <typename T>
+		auto dispatch(T& event) -> void {
+			for (auto& listener : m_Listeners) {
+				if (listener(event))
+					break;
+			}
+		}
 	private:
-		GLFWwindow* m_GLFW   = nullptr;
-		u32 m_WindowedX      = 0;
-		u32 m_WindowedY      = 0;
-		u32 m_WindowedWidth  = 0;
-		u32 m_WindowedHeight = 0;
+		SDL_Window* m_SDL = nullptr;
 		std::vector<WindowListener> m_Listeners;
+		bool bShouldClose = false;
 	};
 
-} // namespace aby::win::glfw
+} // namespace aby::win::sdl
