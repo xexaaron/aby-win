@@ -1,4 +1,5 @@
 #pragma once
+#include <type_traits>
 
 #define __ABY_WIN_EVENT_BODY__(_type, _category, _name) \
 	static auto static_type() -> EEvent {               \

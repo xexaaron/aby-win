@@ -1,7 +1,8 @@
 #pragma once
-#include "common.hpp"
 #include "inline/event.inl"
 
+#include <cstddef>
+#include <cstdint>
 #include <filesystem>
 #include <format>
 
@@ -45,7 +46,7 @@ namespace aby::win {
 		joystick_disconnected,
 	};
 
-	enum class EKey : u16 {
+	enum class EKey : uint16_t {
 		unknown = 0,
 
 		// Letters
@@ -179,7 +180,7 @@ namespace aby::win {
 		count
 	};
 
-	enum class EMouseButton : u8 {
+	enum class EMouseButton : uint8_t {
 		none = 0,
 		left,
 		right,
@@ -192,7 +193,7 @@ namespace aby::win {
 		count
 	};
 
-	enum class EMod : u8 {
+	enum class EMod : uint8_t {
 		none      = 0,
 		shift     = 1 << 0,
 		ctrl      = 1 << 1,
@@ -202,6 +203,11 @@ namespace aby::win {
 		num_lock  = 1 << 5,
 	};
 
+	/**
+	 * @brief The base event class for all event classes to inherit from
+	 * 		  Event data is accessed using the pointer operator on a reference to an event of derived type.
+	 * 		  Use the EventDispatcher class to access this data easily.
+	 */
 	class Event {
 	public:
 		static auto static_type() -> EEvent {
@@ -221,12 +227,22 @@ namespace aby::win {
 		}
 	};
 
+	/**
+	 * @brief Event dispatcher to correlate free/lambda/member functions with specific events
+	 */
 	class EventDispatcher {
 	public:
 		explicit EventDispatcher(Event& event) :
 		    m_Event(event) {
 		}
 
+		/**
+		 * @brief Dispatch a lambda or free function to a specific event determined by the function signature
+		 * @tparam F the function type
+		 * @param callback The function to dispatch
+		 * @note The signature must match: [](std::derived_from<T, Event>& event) -> bool 
+		 * @return True if the event was dispatched, otherwise false
+		 */
 		template <typename F>
 		auto dispatch(F&& callback) -> bool {
 			using Arg = detail::first_argument_t<F>;
@@ -242,6 +258,15 @@ namespace aby::win {
 			return true;
 		}
 
+		/**
+		 * @brief Dispatch a member function to a specific event determined by the function signature
+		 * @tparam F the function type
+		 * @tparam O the object type
+		 * @param callback The member function to dispatch
+		 * @param object The member class instance to dispatch from
+		 * @note The signature must match: &T::func(std::derived_from<T, Event>& event) -> bool
+		 * @return True if the event was disptached, otherwise false
+		 */
 		template <typename F, typename O>
 		auto dispatch(F&& callback, O* object) -> bool {
 			using Arg = detail::first_argument_t<F>;
@@ -321,15 +346,15 @@ namespace aby::win {
 	ABY_WIN_DECLARE_EVENT(
 	    WindowMoved, window_moved, window,
 	    {
-		    i32 x;
-		    i32 y;
+		    int32_t x;
+		    int32_t y;
 	    });
 
 	ABY_WIN_DECLARE_EVENT(
 	    WindowResized, window_resized, window,
 	    {
-		    u32 width;
-		    u32 height;
+		    uint32_t width;
+		    uint32_t height;
 	    });
 
 	ABY_WIN_DECLARE_EMPTY_EVENT(WindowClosed, window_closed, window);
@@ -357,8 +382,8 @@ namespace aby::win {
 	ABY_WIN_DECLARE_EVENT(
 	    WindowFramebufferResized, window_fb_resized, window,
 	    {
-		    u32 width;
-		    u32 height;
+		    uint32_t width;
+		    uint32_t height;
 	    });
 
 	ABY_WIN_DECLARE_EVENT(
@@ -377,25 +402,25 @@ namespace aby::win {
 	ABY_WIN_DECLARE_EVENT(
 	    MonitorConnected, monitor_connected, monitor,
 	    {
-		    u32 monitor;
+		    uint32_t monitor;
 	    });
 
 	ABY_WIN_DECLARE_EVENT(
 	    MonitorDisconnected, monitor_disconnected, monitor,
 	    {
-		    u32 monitor;
+		    uint32_t monitor;
 	    });
 
 	ABY_WIN_DECLARE_EVENT(
 	    JoystickConnected, joystick_connected, joystick,
 	    {
-		    u32 joystick;
+		    uint32_t joystick;
 	    });
 
 	ABY_WIN_DECLARE_EVENT(
 	    JoystickDisconnected, joystick_disconnected, joystick,
 	    {
-		    u32 joystick;
+		    uint32_t joystick;
 	    });
 
 } // namespace aby::win
@@ -783,7 +808,7 @@ namespace std {
 		auto format(aby::win::EMod value, std::format_context& ctx) const {
 			using namespace aby::win;
 
-			const auto bits = static_cast<u8>(value);
+			const auto bits = static_cast<uint8_t>(value);
 
 			if (bits == 0)
 				return std::formatter<std::string_view>::format("none", ctx);
@@ -791,7 +816,7 @@ namespace std {
 			std::string out;
 
 			auto append = [&](std::string_view name, EMod mod) {
-				if ((bits & static_cast<u8>(mod)) == 0)
+				if ((bits & static_cast<uint8_t>(mod)) == 0)
 					return;
 
 				if (!out.empty())
@@ -812,3 +837,50 @@ namespace std {
 	};
 
 } // namespace std
+
+namespace aby::win {
+
+	constexpr auto operator|(EMod lhs, EMod rhs) -> EMod {
+		return static_cast<EMod>(static_cast<uint8_t>(lhs) | static_cast<uint8_t>(rhs));
+	}
+
+	constexpr auto operator|=(EMod& lhs, EMod rhs) -> EMod& {
+		lhs = lhs | rhs;
+		return lhs;
+	}
+
+	constexpr auto operator&(EMod lhs, EMod rhs) -> EMod {
+		return static_cast<EMod>(static_cast<uint8_t>(lhs) & static_cast<uint8_t>(rhs));
+	}
+
+	constexpr auto operator&=(EMod& lhs, EMod rhs) -> EMod& {
+		lhs = lhs & rhs;
+		return lhs;
+	}
+
+	constexpr auto operator^(EMod lhs, EMod rhs) -> EMod {
+		return static_cast<EMod>(static_cast<uint8_t>(lhs) ^ static_cast<uint8_t>(rhs));
+	}
+
+	constexpr auto operator^=(EMod& lhs, EMod rhs) -> EMod& {
+		lhs = lhs ^ rhs;
+		return lhs;
+	}
+
+	constexpr auto operator~(EMod value) -> EMod {
+		return static_cast<EMod>(~static_cast<uint8_t>(value));
+	}
+
+	constexpr auto operator!(EMod value) -> bool {
+		return value == EMod::none;
+	}
+
+	constexpr auto operator==(EMod lhs, EMod rhs) -> bool {
+		return static_cast<uint8_t>(lhs) == static_cast<uint8_t>(rhs);
+	}
+
+	constexpr auto operator!=(EMod lhs, EMod rhs) -> bool {
+		return !(lhs == rhs);
+	}
+
+} // namespace aby::win

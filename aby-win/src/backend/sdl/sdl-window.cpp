@@ -1,21 +1,23 @@
 #include "backend/sdl/sdl-window.hpp"
 
+#include "common.hpp"
+
 #include <SDL3/SDL.h>
 
 namespace aby::win::sdl::detail {
 
 	auto to_key(SDL_Keycode key) -> EKey;
 	auto to_mods(SDL_Keymod mods) -> EMod;
-	auto to_mouse_button(u8 button) -> EMouseButton;
+	auto to_mouse_button(uint8_t button) -> EMouseButton;
 
 } // namespace aby::win::sdl::detail
 
 namespace aby::win::sdl {
 
-	Window::Window(std::string_view name, u32 w, u32 h, ERenderBackend backend, ETheme theme) :
+	Window::Window(std::string_view name, uint32_t w, uint32_t h, ERenderBackend backend, ETheme theme) :
 	    win::Window(EWindow::sdl, name, w, h, backend, theme) {
 		if (!SDL_Init(SDL_INIT_VIDEO | SDL_INIT_JOYSTICK)) {
-			log_err("[sdl] failed to initialize SDL: {}", SDL_GetError());
+			aby_win_err("[sdl] failed to initialize SDL: {}", SDL_GetError());
 			return;
 		}
 
@@ -41,7 +43,7 @@ namespace aby::win::sdl {
 		m_SDL = SDL_CreateWindow(m_Name.c_str(), static_cast<int>(w), static_cast<int>(h), flags);
 
 		if (!m_SDL) {
-			log_err("[sdl] failed to create window: {}", SDL_GetError());
+			aby_win_err("[sdl] failed to create window: {}", SDL_GetError());
 			SDL_Quit();
 			return;
 		}
@@ -62,19 +64,19 @@ namespace aby::win::sdl {
 		m_Name = std::string(name);
 		SDL_SetWindowTitle(m_SDL, m_Name.data());
 	}
-	auto Window::set_width(u32 w) -> void {
+	auto Window::set_width(uint32_t w) -> void {
 		SDL_SetWindowSize(m_SDL, w, height());
 	}
 
-	auto Window::set_height(u32 h) -> void {
+	auto Window::set_height(uint32_t h) -> void {
 		SDL_SetWindowSize(m_SDL, width(), h);
 	}
 
-	auto Window::set_size(u32 w, u32 h) -> void {
+	auto Window::set_size(uint32_t w, uint32_t h) -> void {
 		SDL_SetWindowSize(m_SDL, w, h);
 	}
 
-	auto Window::set_position(i32 x, i32 y) -> void {
+	auto Window::set_position(int32_t x, int32_t y) -> void {
 		SDL_SetWindowPosition(m_SDL, x, y);
 	}
 
@@ -100,7 +102,7 @@ namespace aby::win::sdl {
 
 	auto Window::set_theme(ETheme theme) -> void {
 		m_Theme = theme;
-		log_wrn("theme control not implemented for SDL, SDL Automatically tracks system the system theme");
+		aby_win_wrn("theme control not implemented for SDL, SDL Automatically tracks system the system theme");
 	}
 
 	auto Window::add_listener(WindowListener&& listener) -> void {
@@ -121,6 +123,10 @@ namespace aby::win::sdl {
 
 	auto Window::show() -> void {
 		SDL_ShowWindow(m_SDL);
+	}
+
+	auto Window::hide() -> void {
+		SDL_HideWindow(m_SDL);
 	}
 
 	auto Window::close() -> void {
@@ -180,15 +186,15 @@ namespace aby::win::sdl {
 				}
 				case SDL_EVENT_WINDOW_RESIZED: {
 					WindowResizedEvent event(
-					    static_cast<u32>(sdl_event.window.data1),
-					    static_cast<u32>(sdl_event.window.data2));
+					    static_cast<uint32_t>(sdl_event.window.data1),
+					    static_cast<uint32_t>(sdl_event.window.data2));
 					dispatch(event);
 					break;
 				}
 				case SDL_EVENT_WINDOW_PIXEL_SIZE_CHANGED: {
 					WindowFramebufferResizedEvent event(
-					    static_cast<u32>(sdl_event.window.data1),
-					    static_cast<u32>(sdl_event.window.data2));
+					    static_cast<uint32_t>(sdl_event.window.data1),
+					    static_cast<uint32_t>(sdl_event.window.data2));
 					dispatch(event);
 					break;
 				}
@@ -424,26 +430,26 @@ namespace aby::win::sdl {
 		}
 	}
 
-	auto Window::width() const -> u32 {
-		i32 w, h;
+	auto Window::width() const -> uint32_t {
+		int32_t w, h;
 		SDL_GetWindowSize(m_SDL, &w, &h);
 		return w;
 	}
 
-	auto Window::height() const -> u32 {
-		i32 w, h;
+	auto Window::height() const -> uint32_t {
+		int32_t w, h;
 		SDL_GetWindowSize(m_SDL, &w, &h);
 		return h;
 	}
 
-	auto Window::size() const -> std::pair<u32, u32> {
-		i32 w, h;
+	auto Window::size() const -> std::pair<uint32_t, uint32_t> {
+		int32_t w, h;
 		SDL_GetWindowSize(m_SDL, &w, &h);
-		return std::make_pair<u32, u32>(w, h);
+		return std::make_pair<uint32_t, uint32_t>(w, h);
 	}
 
-	auto Window::position() const -> std::pair<i32, i32> {
-		i32 x, y;
+	auto Window::position() const -> std::pair<int32_t, int32_t> {
+		int32_t x, y;
 		SDL_GetWindowPosition(m_SDL, &x, &y);
 		return std::make_pair(x, y);
 	}
@@ -475,26 +481,26 @@ namespace aby::win::sdl {
 		return out;
 	}
 
-	auto Window::fb_width() const -> u32 {
+	auto Window::fb_width() const -> uint32_t {
 		int w, h;
 		SDL_GetWindowSizeInPixels(m_SDL, &w, &h);
-		return static_cast<u32>(w);
+		return static_cast<uint32_t>(w);
 	}
 
-	auto Window::fb_height() const -> u32 {
+	auto Window::fb_height() const -> uint32_t {
 		int w, h;
 		SDL_GetWindowSizeInPixels(m_SDL, &w, &h);
 
-		return static_cast<u32>(h);
+		return static_cast<uint32_t>(h);
 	}
 
-	auto Window::fb_size() const -> std::pair<u32, u32> {
+	auto Window::fb_size() const -> std::pair<uint32_t, uint32_t> {
 		int w, h;
 		SDL_GetWindowSizeInPixels(m_SDL, &w, &h);
 
 		return {
-			static_cast<u32>(w),
-			static_cast<u32>(h)
+			static_cast<uint32_t>(w),
+			static_cast<uint32_t>(h)
 		};
 	}
 
@@ -785,7 +791,7 @@ namespace aby::win::sdl::detail {
 		return result;
 	}
 
-	auto to_mouse_button(u8 button) -> EMouseButton {
+	auto to_mouse_button(uint8_t button) -> EMouseButton {
 		switch (button) {
 			case SDL_BUTTON_LEFT:
 				return EMouseButton::left;
@@ -805,7 +811,7 @@ namespace aby::win::sdl::detail {
 			default:
 				if (button >= 6 && button <= 8)
 					return static_cast<EMouseButton>(
-					    static_cast<u8>(EMouseButton::button_4) + (button - SDL_BUTTON_X1));
+					    static_cast<uint8_t>(EMouseButton::button_4) + (button - SDL_BUTTON_X1));
 
 				return EMouseButton::none;
 		}

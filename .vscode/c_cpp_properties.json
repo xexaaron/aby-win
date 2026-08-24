@@ -11,7 +11,11 @@
             "defines": [
                 "_DEBUG",
                 "UNICODE",
-                "_UNICODE"
+                "_UNICODE",
+                "ABY_RHI_ENABLE_LOG_INFO=1",
+                "ABY_RHI_ENABLE_LOG_TRACE=1",
+                "ABY_RHI_ENABLE_LOG_WARN=1",
+                "ABY_RHI_ENABLE_ASSERT=1"
             ],
             "compilerArgs": [
                 "/Zc:preprocessor"

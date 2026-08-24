@@ -1,22 +1,23 @@
+#include <aby-win/common.hpp>
 #include <aby-win/window.hpp>
 
 namespace aby::win {
 
 	auto on_window_resize(WindowResizedEvent& event) -> bool {
-		log_inf("FREE FN EVENT: [name: {}, category: {}, type: {}]", event.name(), event.category(), event.type());
+		aby_win_log("FREE FN EVENT: [name: {}, category: {}, type: {}]", event.name(), event.category(), event.type());
 		return false;
 	}
 
 	class EventManager {
 	public:
 		auto on_window_resize(WindowResizedEvent& event) -> bool {
-			log_inf("MEMBER FN EVENT: [name: {}, category: {}, type: {}]", event.name(), event.category(), event.type());
+			aby_win_log("MEMBER FN EVENT: [name: {}, category: {}, type: {}]", event.name(), event.category(), event.type());
 			return false;
 		}
 	};
 
 	auto on_window_resize_lambda = [](WindowResizedEvent& event) -> bool {
-		log_inf("LAMBDA FN EVENT: [name: {}, category: {}, type: {}]", event.name(), event.category(), event.type());
+		aby_win_log("LAMBDA FN EVENT: [name: {}, category: {}, type: {}]", event.name(), event.category(), event.type());
 		return false;
 	};
 

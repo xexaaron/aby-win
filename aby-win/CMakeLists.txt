@@ -5,15 +5,18 @@ set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/$<CONFIGURATION>)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/$<CONFIGURATION>)
 
+option(ABY_WIN_ENABLE_LOG_INFO "enable info logging" ON)
+option(ABY_WIN_ENABLE_LOG_TRACE "enable trace logging" ON)
+option(ABY_WIN_ENABLE_LOG_WARN "enable warning logging" ON)
+option(ABY_WIN_ENABLE_ASSERT "enable assertions. if turned off then only errors will be logged." ON)
+
 add_library(${PROJECT_NAME} 
-    src/log.cpp
     src/window.cpp
+    src/common.cpp
     src/backend/glfw/glfw-window.cpp
     src/backend/sdl/sdl-window.cpp
-    include/aby-win/log.hpp
-    include/aby-win/typedefs.hpp
-    include/aby-win/common.hpp
     include/aby-win/window.hpp
+    include/aby-win/common.hpp
 )
 
 add_library(${PROJECT_NAME}::${PROJECT_NAME} ALIAS ${PROJECT_NAME})
@@ -32,4 +35,11 @@ target_link_libraries(${PROJECT_NAME} PRIVATE glfw SDL3::SDL3)
 target_compile_options(${PROJECT_NAME} PRIVATE
     $<$<CXX_COMPILER_ID:MSVC>:/WX /Zc:preprocessor>
     $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-Werror>
+)
+
+target_compile_definitions(${PROJECT_NAME} PUBLIC
+    ABY_WIN_ENABLE_LOG_INFO=$<BOOL:${ABY_WIN_ENABLE_LOG_INFO}>
+    ABY_WIN_ENABLE_LOG_TRACE=$<BOOL:${ABY_WIN_ENABLE_LOG_TRACE}>
+    ABY_WIN_ENABLE_LOG_WARN=$<BOOL:${ABY_WIN_ENABLE_LOG_WARN}> 
+    ABY_WIN_ENABLE_ASSERT=$<BOOL:${ABY_WIN_ENABLE_ASSERT}>
 )

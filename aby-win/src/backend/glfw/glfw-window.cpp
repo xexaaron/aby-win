@@ -1,4 +1,7 @@
 #include "backend/glfw/glfw-window.hpp"
+
+#include "common.hpp"
+
 #ifdef _WIN32
 #	define GLFW_EXPOSE_NATIVE_WIN32
 #	include <dwmapi.h>
@@ -55,7 +58,7 @@ namespace aby::win::glfw::detail {
 
 namespace aby::win::glfw {
 
-	Window::Window(std::string_view name, u32 w, u32 h, ERenderBackend backend, ETheme theme) :
+	Window::Window(std::string_view name, uint32_t w, uint32_t h, ERenderBackend backend, ETheme theme) :
 	    win::Window(EWindow::glfw, name, w, h, backend, theme) {
 		glfwSetErrorCallback(&detail::err_callback);
 
@@ -112,19 +115,19 @@ namespace aby::win::glfw {
 		glfwSetWindowTitle(m_GLFW, m_Name.c_str());
 	}
 
-	auto Window::set_width(u32 w) -> void {
+	auto Window::set_width(uint32_t w) -> void {
 		glfwSetWindowSize(m_GLFW, w, height());
 	}
 
-	auto Window::set_height(u32 h) -> void {
+	auto Window::set_height(uint32_t h) -> void {
 		glfwSetWindowSize(m_GLFW, width(), h);
 	}
 
-	auto Window::set_size(u32 w, u32 h) -> void {
+	auto Window::set_size(uint32_t w, uint32_t h) -> void {
 		glfwSetWindowSize(m_GLFW, w, h);
 	}
 
-	auto Window::set_position(i32 x, i32 y) -> void {
+	auto Window::set_position(int32_t x, int32_t y) -> void {
 		glfwSetWindowPos(m_GLFW, x, y);
 	}
 
@@ -139,13 +142,13 @@ namespace aby::win::glfw {
 
 			GLFWmonitor* monitor = glfwGetPrimaryMonitor();
 			if (!monitor) {
-				log_err("[glfw] failed to get primary monitor");
+				aby_win_err("[glfw] failed to get primary monitor");
 				return;
 			}
 
 			const GLFWvidmode* mode = glfwGetVideoMode(monitor);
 			if (!mode) {
-				log_err("[glfw] failed to get primary monitor video mode");
+				aby_win_err("[glfw] failed to get primary monitor video mode");
 				return;
 			}
 
@@ -226,6 +229,10 @@ namespace aby::win::glfw {
 		glfwShowWindow(m_GLFW);
 	}
 
+	auto Window::hide() -> void {
+		glfwHideWindow(m_GLFW);
+	}
+
 	auto Window::close() -> void {
 		glfwSetWindowShouldClose(m_GLFW, GLFW_TRUE);
 	}
@@ -234,26 +241,26 @@ namespace aby::win::glfw {
 		glfwPollEvents();
 	}
 
-	auto Window::width() const -> u32 {
-		i32 w, h;
+	auto Window::width() const -> uint32_t {
+		int32_t w, h;
 		glfwGetWindowSize(m_GLFW, &w, &h);
 		return w;
 	}
 
-	auto Window::height() const -> u32 {
-		i32 w, h;
+	auto Window::height() const -> uint32_t {
+		int32_t w, h;
 		glfwGetWindowSize(m_GLFW, &w, &h);
 		return h;
 	}
 
-	auto Window::size() const -> std::pair<u32, u32> {
-		i32 w, h;
+	auto Window::size() const -> std::pair<uint32_t, uint32_t> {
+		int32_t w, h;
 		glfwGetWindowSize(m_GLFW, &w, &h);
-		return std::make_pair<u32, u32>(w, h);
+		return std::make_pair<uint32_t, uint32_t>(w, h);
 	}
 
-	auto Window::position() const -> std::pair<i32, i32> {
-		i32 x, y;
+	auto Window::position() const -> std::pair<int32_t, int32_t> {
+		int32_t x, y;
 		glfwGetWindowPos(m_GLFW, &x, &y);
 		return std::make_pair(x, y);
 	}
@@ -284,22 +291,22 @@ namespace aby::win::glfw {
 		return out;
 	}
 
-	auto Window::fb_width() const -> u32 {
-		i32 w, h;
+	auto Window::fb_width() const -> uint32_t {
+		int32_t w, h;
 		glfwGetFramebufferSize(m_GLFW, &w, &h);
-		return static_cast<u32>(w);
+		return static_cast<uint32_t>(w);
 	}
 
-	auto Window::fb_height() const -> u32 {
-		i32 w, h;
+	auto Window::fb_height() const -> uint32_t {
+		int32_t w, h;
 		glfwGetFramebufferSize(m_GLFW, &w, &h);
-		return static_cast<u32>(h);
+		return static_cast<uint32_t>(h);
 	}
 
-	auto Window::fb_size() const -> std::pair<u32, u32> {
-		i32 w, h;
+	auto Window::fb_size() const -> std::pair<uint32_t, uint32_t> {
+		int32_t w, h;
 		glfwGetFramebufferSize(m_GLFW, &w, &h);
-		return std::make_pair<u32, u32>(w, h);
+		return std::make_pair<uint32_t, uint32_t>(w, h);
 	}
 
 	auto Window::listeners() -> std::span<WindowListener> {
@@ -307,22 +314,22 @@ namespace aby::win::glfw {
 	}
 
 	auto Window::focused() const -> bool {
-		i32 value = glfwGetWindowAttrib(m_GLFW, GLFW_FOCUSED);
+		int32_t value = glfwGetWindowAttrib(m_GLFW, GLFW_FOCUSED);
 		return value == GLFW_TRUE;
 	}
 
 	auto Window::minimized() const -> bool {
-		i32 value = glfwGetWindowAttrib(m_GLFW, GLFW_ICONIFIED);
+		int32_t value = glfwGetWindowAttrib(m_GLFW, GLFW_ICONIFIED);
 		return value == GLFW_TRUE;
 	}
 
 	auto Window::maximized() const -> bool {
-		i32 value = glfwGetWindowAttrib(m_GLFW, GLFW_MAXIMIZED);
+		int32_t value = glfwGetWindowAttrib(m_GLFW, GLFW_MAXIMIZED);
 		return value == GLFW_TRUE;
 	}
 
 	auto Window::visible() const -> bool {
-		i32 value = glfwGetWindowAttrib(m_GLFW, GLFW_VISIBLE);
+		int32_t value = glfwGetWindowAttrib(m_GLFW, GLFW_VISIBLE);
 		return value == GLFW_TRUE;
 	}
 
@@ -339,7 +346,7 @@ namespace aby::win::glfw {
 namespace aby::win::glfw::detail {
 
 	auto err_callback(int error_code, const char* description) -> void {
-		log_err("[glfw] ({}): {}", error_code, description);
+		aby_win_err("[glfw] ({}): {}", error_code, description);
 	}
 
 	auto system_dark_theme() -> bool {
@@ -372,7 +379,7 @@ namespace aby::win::glfw::detail {
 	}
 
 	auto window_size_callback(GLFWwindow* window, int width, int height) -> void {
-		WindowResizedEvent event(static_cast<u32>(width), static_cast<u32>(height));
+		WindowResizedEvent event(static_cast<uint32_t>(width), static_cast<uint32_t>(height));
 		dispatch(window, event);
 	}
 
@@ -402,7 +409,7 @@ namespace aby::win::glfw::detail {
 	}
 
 	auto framebuffer_size_callback(GLFWwindow* window, int width, int height) -> void {
-		WindowFramebufferResizedEvent event(static_cast<u32>(width), static_cast<u32>(height));
+		WindowFramebufferResizedEvent event(static_cast<uint32_t>(width), static_cast<uint32_t>(height));
 		dispatch(window, event);
 	}
 
