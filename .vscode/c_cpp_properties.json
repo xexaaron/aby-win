@@ -3,7 +3,10 @@
         {
             "name": "Win32",
             "includePath": [
-                "${workspaceFolder}/aby-win/include"
+                "${workspaceFolder}/aby-win/include",
+                "${workspaceFolder}/aby-win/include/aby-win",
+                "${workspaceFolder}/vendor/glfw/include",
+                "${workspaceFolder}/vendor/SDL/include"
             ],
             "defines": [
                 "_DEBUG",
@@ -11,7 +14,7 @@
                 "_UNICODE"
             ],
             "compilerArgs": [
-                "/Zc:preprocessor"  
+                "/Zc:preprocessor"
             ],
             "windowsSdkVersion": "10.0.26100.0",
             "compilerPath": "cl.exe",

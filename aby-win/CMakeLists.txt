@@ -5,17 +5,28 @@ set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/$<CONFIGURATION>)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/$<CONFIGURATION>)
 
-add_executable(${PROJECT_NAME} 
-    main.cpp
+add_library(${PROJECT_NAME} 
     src/log.cpp
-    include/log.hpp
-    include/typedefs.hpp
-    include/common.hpp
+    src/window.cpp
+    src/backend/glfw/glfw-window.cpp
+    include/aby-win/log.hpp
+    include/aby-win/typedefs.hpp
+    include/aby-win/common.hpp
+    include/aby-win/window.hpp
 )
 
-target_include_directories(${PROJECT_NAME} PRIVATE 
-    include
+add_library(${PROJECT_NAME}::${PROJECT_NAME} ALIAS ${PROJECT_NAME})
+
+target_include_directories(${PROJECT_NAME} PRIVATE
+PUBLIC
+    ${CMAKE_CURRENT_SOURCE_DIR}/include
+PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/include/aby-win
+    ${VENDOR_DIR}/glfw/include
+    ${VENDOR_DIR}/SDL/include
 )
+
+target_link_libraries(${PROJECT_NAME} PRIVATE glfw)
 
 target_compile_options(${PROJECT_NAME} PRIVATE
     $<$<CXX_COMPILER_ID:MSVC>:/WX /Zc:preprocessor>

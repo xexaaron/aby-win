@@ -18,7 +18,7 @@
 #	define mconcat_impl(x, y) x##y
 #	define mconcat(x, y) mconcat_impl(x, y)
 #	define TIME_SCOPE(...) ::aby::win::Timer mconcat(__scoped_timer__, __LINE__)(__VA_ARGS__ __VA_OPT__(, ) __FUNCTION__)
-#	define TRACE_SCOPE()                                   \
+#	define TRACE_SCOPE()                                        \
 		::aby::win::TraceDepth mconcat(__trc_depth__, __LINE__); \
 		::aby::win::Logger::get(::aby::win::ELogger::Internal)->trace(::aby::win::fs::path(__FILE__), ::aby::win::Line{ __LINE__ }, __FUNCTION__)
 #	define log_trc(...) ::aby::win::Logger::get(::aby::win::ELogger::Internal)->trace(__FILE__, ::aby::win::Line{ __LINE__ }, __FUNCTION__ __VA_OPT__(, ) __VA_ARGS__)
@@ -27,12 +27,12 @@
 #	define log_err(fmt, ...) ::aby::win::Logger::get(::aby::win::ELogger::Internal)->log(::aby::win::ELevel::Err, fmt __VA_OPT__(, ) __VA_ARGS__)
 #	define log_dev(fmt, ...) ::aby::win::Logger::get(::aby::win::ELogger::Internal)->log(::aby::win::ELevel::Dev, fmt __VA_OPT__(, ) __VA_ARGS__)
 #	define log_tdo(fmt, ...) ::aby::win::Logger::get(::aby::win::ELogger::Internal)->todo(::aby::win::fs::path(__FILE__), ::aby::win::Line{ __LINE__ }, fmt __VA_OPT__(, ) __VA_ARGS__)
-#	define log_ast(expr, fmt, ...)                                                                                                                                     \
-		do {                                                                                                                                                            \
+#	define log_ast(expr, fmt, ...)                                                                                                                                                              \
+		do {                                                                                                                                                                                     \
 			::aby::win::Logger::get(::aby::win::ELogger::Internal)->log(::aby::win::ELevel::Assert, "{}:({}) @ {}", ::aby::win::fs::path(__FILE__), ::aby::win::Line{ __LINE__ }, __FUNCTION__); \
-			::aby::win::Logger::get(::aby::win::ELogger::Internal)->log(::aby::win::ELevel::Assert, "Trace Depth: {}", ::aby::win::Logger::format_depth(TraceDepth::value));                \
-			::aby::win::Logger::get(::aby::win::ELogger::Internal)->log(::aby::win::ELevel::Assert, "Expression: {}", #expr);                                                          \
-			::aby::win::Logger::get(::aby::win::ELogger::Internal)->log(::aby::win::ELevel::Assert, fmt __VA_OPT__(, ) __VA_ARGS__);                                                   \
+			::aby::win::Logger::get(::aby::win::ELogger::Internal)->log(::aby::win::ELevel::Assert, "Trace Depth: {}", ::aby::win::Logger::format_depth(TraceDepth::value));                     \
+			::aby::win::Logger::get(::aby::win::ELogger::Internal)->log(::aby::win::ELevel::Assert, "Expression: {}", #expr);                                                                    \
+			::aby::win::Logger::get(::aby::win::ELogger::Internal)->log(::aby::win::ELevel::Assert, fmt __VA_OPT__(, ) __VA_ARGS__);                                                             \
 		} while (0)
 #	define expect(expr, fmt, ...)                             \
 		do {                                                   \
@@ -54,7 +54,7 @@
 #	define expect(...)
 #endif
 
-namespace aby::win::win {
+namespace aby::win {
 
 	namespace fs = std::filesystem;
 
@@ -155,7 +155,7 @@ namespace aby::win::win {
 		static MapTy<ELogger, std::shared_ptr<Logger>> s_Loggers;
 	};
 
-} // namespace aby::win::win
+} // namespace aby::win
 
 namespace std {
 
@@ -212,7 +212,7 @@ namespace std {
 
 } // namespace std
 
-namespace aby::win::win {
+namespace aby::win {
 
 	template <typename... Args>
 	auto Logger::log(ELevel lvl, std::format_string<Args...> fmt, Args&&... args) -> void {
@@ -286,5 +286,5 @@ namespace aby::win::win {
 		}
 	}
 
-} // namespace aby::win::win
+} // namespace aby::win
 

@@ -4,7 +4,7 @@
 #include <string>
 #include <string_view>
 
-namespace aby::win::win {
+namespace aby::win {
 
 	Logger::MapTy<ELogger, std::shared_ptr<Logger>> Logger::s_Loggers = {};
 
@@ -198,9 +198,9 @@ namespace aby::win::win {
 		}
 	}
 
-} // namespace aby::win::win
+} // namespace aby::win
 
-namespace aby::win::win {
+namespace aby::win {
 
 	Timer::Timer(std::string name, ...) :
 	    name(std::move(name)),
@@ -216,4 +216,4 @@ namespace aby::win::win {
 		}
 	}
 
-} // namespace aby::win::win
+} // namespace aby::win
