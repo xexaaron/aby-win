@@ -10,7 +10,7 @@ namespace aby::win::glfw {
 
 	class Window : public win::Window {
 	public:
-		Window(std::string_view name, uint32_t w, uint32_t h, ERenderBackend backend, ETheme theme);
+		Window(const Config& config);
 		~Window();
 
 		auto set_name(std::string_view name) -> void override;
@@ -23,6 +23,7 @@ namespace aby::win::glfw {
 		auto set_cursor_pos(float x, float y) -> void override;
 		auto set_theme(ETheme theme) -> void override;
 		auto add_listener(WindowListener&& listener) -> void override;
+		auto internal_set_monitor(std::unique_ptr<Monitor>&& monitor) -> void;
 
 		auto focus() -> void override;
 		auto minimize() -> void override;
@@ -41,6 +42,7 @@ namespace aby::win::glfw {
 		auto fb_width() const -> uint32_t override;
 		auto fb_height() const -> uint32_t override;
 		auto fb_size() const -> std::pair<uint32_t, uint32_t> override;
+		auto monitor() const -> const Monitor* override;
 		auto listeners() -> std::span<WindowListener>;
 
 		auto focused() const -> bool override;
@@ -50,11 +52,12 @@ namespace aby::win::glfw {
 		auto fullscreened() -> bool override;
 		auto should_close() const -> bool override;
 	private:
-		GLFWwindow* m_GLFW   = nullptr;
-		uint32_t m_WindowedX      = 0;
-		uint32_t m_WindowedY      = 0;
-		uint32_t m_WindowedWidth  = 0;
-		uint32_t m_WindowedHeight = 0;
+		GLFWwindow* m_GLFW                 = nullptr;
+		uint32_t m_WindowedX               = 0;
+		uint32_t m_WindowedY               = 0;
+		uint32_t m_WindowedWidth           = 0;
+		uint32_t m_WindowedHeight          = 0;
+		std::unique_ptr<Monitor> m_Monitor = nullptr;
 		std::vector<WindowListener> m_Listeners;
 	};
 

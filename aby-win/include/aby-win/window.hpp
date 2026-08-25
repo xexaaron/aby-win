@@ -1,5 +1,6 @@
 #pragma once
 #include "event.hpp"
+#include "monitor.hpp"
 
 #include <functional>
 #include <memory>
@@ -44,54 +45,60 @@ namespace aby::win {
 	 */
 	using WindowListener = std::function<bool(Event&)>;
 
+	struct Config {
+		auto set_name(std::string_view name) -> Config&;
+		auto set_width(uint32_t w) -> Config&;
+		auto set_height(uint32_t h) -> Config&;
+		auto set_size(uint32_t w, uint32_t h) -> Config&;
+		auto set_theme(ETheme theme) -> Config&;
+		auto set_resizable(bool resizable) -> Config&;
+		auto set_visible(bool visible) -> Config&;
+		auto set_decorated(bool decorated) -> Config&;
+		auto set_focused(bool focused) -> Config&;
+		auto set_flags(bool resziable, bool visible, bool decorated, bool focused) -> Config&;
+		auto set_window_backend(EWindow backend) -> Config&;
+		auto set_render_backend(ERenderBackend backend) -> Config&;
+
+		std::string_view name         = "";                   // the title
+		uint32_t width                = 800;                  // the initial width
+		uint32_t height               = 600;                  // the initial height
+		ETheme theme                  = ETheme::automatic;    // the initial theme
+		bool resizable                = true;                 // is window resizing allowed.
+		bool visible                  = true;                 // is the window initially visible.
+		bool decorated                = true;                 // does the window have a title bar
+		bool focused                  = true;                 // does the window start focused
+		EWindow window_backend        = EWindow::glfw;        // the windowing library
+		ERenderBackend render_backend = ERenderBackend::none; // the rendering backend
+	};
+
 	class Window {
 	protected:
-		Window(EWindow window_backend, std::string_view name, uint32_t w, uint32_t h, ERenderBackend render_backend, ETheme theme);
+		Window(const Config& config);
 	public:
 		/**
 		 * @brief Create a window
-		 * @param window_backend The type of window to create [sdl, glfw]
-		 * @param name The window title
-		 * @param w The initial window width
-		 * @param h The initial window height
-		 * @param render_backend The renderer backend to provide hints to the window backend
-		 * @param theme [dark, light, automatic]
+		 * @param config The window configuration
 		 * @return std::unique_ptr<Window>
 		 */
-		static auto create(EWindow window_backend, std::string_view name, uint32_t w, uint32_t h, ERenderBackend render_backend, ETheme theme = ETheme::automatic) -> std::unique_ptr<Window>;
+		static auto create(const Config& config) -> std::unique_ptr<Window>;
 		/**
-		 * @brief Create a window
-		 * @param window_backend The type of window to create [sdl, glfw]
-		 * @param name The window title
-		 * @param w The initial window width
-		 * @param h The initial window height
-		 * @param render_backend The renderer backend to provide hints to the window backend
-		 * @param theme [dark, light, automatic]
+		 * @brief Create a raw window ptr
+		 * @param config The window configuration
 		 * @return Window*
 		 */
-		static auto create_raw(EWindow window_backend, std::string_view name, uint32_t w, uint32_t h, ERenderBackend render_backend, ETheme theme = ETheme::automatic) -> Window*;
+		static auto create_raw(const Config& config) -> Window*;
 		/**
-		 * @brief Create a window
-		 * @param window_backend The type of window to create [sdl, glfw]
-		 * @param name The window title
-		 * @param w The initial window width
-		 * @param h The initial window height
-		 * @param render_backend The renderer backend to provide hints to the window backend
-		 * @param theme [dark, light, automatic]
+		 * @brief Create a unique ptr window
+		 * @param config The window configuration
 		 * @return std::unique_ptr<Window>
 		 */
-		static auto create_unique(EWindow window_backend, std::string_view name, uint32_t w, uint32_t h, ERenderBackend render_backend, ETheme theme = ETheme::automatic) -> std::unique_ptr<Window>;
+		static auto create_unique(const Config& config) -> std::unique_ptr<Window>;
 		/**
-		 * @brief Create a window
-		 * @param window_backend The type of window to create [sdl, glfw]
-		 * @param name The window title
-		 * @param w The initial window width
-		 * @param h The initial window height
-		 * @param render_backend The renderer backend to provide hints to the window backend
-		 * @param theme [dark, light, automatic]
+		 * @brief Create a shared ptr window
+		 * @param config The window configuraiton
 		 * @return std::shared_ptr<Window>
 		 */
-		static auto create_shared(EWindow window_backend, std::string_view name, uint32_t w, uint32_t h, ERenderBackend render_backend, ETheme theme = ETheme::automatic) -> std::shared_ptr<Window>;
+		static auto create_shared(const Config& config) -> std::shared_ptr<Window>;
 		virtual ~Window() = default;
 
 		/**
@@ -120,7 +127,7 @@ namespace aby::win {
 		 * @param x The new x position
 		 * @param y The new y position
 		 */
-		virtual auto set_position(int32_t x, int32_t y) -> void              = 0;
+		virtual auto set_position(int32_t x, int32_t y) -> void      = 0;
 		/**
 		 * @brief Set the fullscreen mode
 		 * @param fullscreen [true|false]
@@ -200,7 +207,7 @@ namespace aby::win {
 		/**
 		 * @brief Get the window position
 		 */
-		virtual auto position() const -> std::pair<int32_t, int32_t>          = 0;
+		virtual auto position() const -> std::pair<int32_t, int32_t>  = 0;
 		/**
 		 * @brief Get the window display content scale
 		 */
@@ -221,6 +228,10 @@ namespace aby::win {
 		 * @brief Get the pixel size of the window
 		 */
 		virtual auto fb_size() const -> std::pair<uint32_t, uint32_t> = 0;
+		/**
+		 * @brief Get the current monitor that the window is *mostly* on
+		*/
+		virtual auto monitor() const -> const Monitor*                = 0;
 
 		/**
 		 * @brief Check if the window is focused

@@ -46,6 +46,27 @@ namespace aby::win::glfw::detail {
 	auto to_mods(int mods) -> EMod;
 	auto to_mouse_button(int button) -> EMouseButton;
 
+	auto create_monitor_based_on_window_pos(GLFWwindow* window) -> std::unique_ptr<Monitor>;
+
+	/**
+	 * @brief Get the monitor the mouse is currently on
+	 * @param monitor out monitor pointer parameter
+	 * @param window the window to check against
+	 * @author https://github.com/ghost 
+	 * @link https://github.com/glfw/glfw/issues/1699
+	 * @return false if monitor was not found, otherwise true 
+	*/
+	auto glfw_get_mouse_monitor(GLFWmonitor** monitor, GLFWwindow* window) -> bool;
+	/**
+	 * @brief Get the monitor the window is *most* geometrically on 
+	 * @param monitor out monitor pointer parameter
+	 * @param window the window to check against
+	 * @author https://github.com/ghost 
+	 * @link https://github.com/glfw/glfw/issues/1699
+	 * @return false if monitor was not found, otherwise true 
+	*/
+	auto glfw_get_window_monitor(GLFWmonitor** monitor, GLFWwindow* window) -> bool;
+
 	template <typename T>
 	auto dispatch(GLFWwindow* window, T& event) -> void {
 		for (auto& listener : get_listeners(window)) {
@@ -58,26 +79,27 @@ namespace aby::win::glfw::detail {
 
 namespace aby::win::glfw {
 
-	Window::Window(std::string_view name, uint32_t w, uint32_t h, ERenderBackend backend, ETheme theme) :
-	    win::Window(EWindow::glfw, name, w, h, backend, theme) {
+	Window::Window(const Config& config) :
+	    win::Window(config) {
 		glfwSetErrorCallback(&detail::err_callback);
 
 		if (!glfwInit()) {
 			return;
 		}
 
-		if (backend == ERenderBackend::opengl) {
+		if (config.render_backend == ERenderBackend::opengl) {
 			glfwWindowHint(GLFW_CLIENT_API, GLFW_OPENGL_API);
 			glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 		} else {
 			glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
 		}
 
-		glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
-		glfwWindowHint(GLFW_VISIBLE, GLFW_TRUE);
-		glfwWindowHint(GLFW_DECORATED, GLFW_TRUE);
-		glfwWindowHint(GLFW_FOCUSED, GLFW_TRUE);
-		if (m_GLFW = glfwCreateWindow(w, h, name.data(), NULL, NULL); !m_GLFW) {
+		glfwWindowHint(GLFW_RESIZABLE, config.resizable ? GLFW_TRUE : GLFW_FALSE);
+		glfwWindowHint(GLFW_VISIBLE, config.visible ? GLFW_TRUE : GLFW_FALSE);
+		glfwWindowHint(GLFW_DECORATED, config.decorated ? GLFW_TRUE : GLFW_FALSE);
+		glfwWindowHint(GLFW_FOCUSED, config.focused ? GLFW_TRUE : GLFW_FALSE);
+
+		if (m_GLFW = glfwCreateWindow(config.width, config.height, m_Name.data(), NULL, NULL); !m_GLFW) {
 			glfwTerminate();
 			return;
 		}
@@ -99,7 +121,9 @@ namespace aby::win::glfw {
 		glfwSetCursorEnterCallback(m_GLFW, &detail::cursor_enter_callback);
 		glfwSetScrollCallback(m_GLFW, &detail::scroll_callback);
 		glfwSetDropCallback(m_GLFW, &detail::drop_callback);
-		set_theme(theme);
+		set_theme(config.theme);
+
+		m_Monitor = detail::create_monitor_based_on_window_pos(m_GLFW);
 	}
 
 	Window::~Window() {
@@ -213,6 +237,10 @@ namespace aby::win::glfw {
 		m_Listeners.push_back(std::move(listener));
 	}
 
+	auto Window::internal_set_monitor(std::unique_ptr<Monitor>&& monitor) -> void {
+		m_Monitor = std::move(monitor);
+	}
+
 	auto Window::focus() -> void {
 		glfwFocusWindow(m_GLFW);
 	}
@@ -309,6 +337,10 @@ namespace aby::win::glfw {
 		return std::make_pair<uint32_t, uint32_t>(w, h);
 	}
 
+	auto Window::monitor() const -> const Monitor* {
+		return m_Monitor.get();
+	}
+
 	auto Window::listeners() -> std::span<WindowListener> {
 		return m_Listeners;
 	}
@@ -374,6 +406,9 @@ namespace aby::win::glfw::detail {
 	}
 
 	auto window_pos_callback(GLFWwindow* window, int x, int y) -> void {
+		auto* win = static_cast<Window*>(glfwGetWindowUserPointer(window));
+		win->internal_set_monitor(create_monitor_based_on_window_pos(window));
+
 		WindowMovedEvent event(x, y);
 		dispatch(window, event);
 	}
@@ -764,6 +799,195 @@ namespace aby::win::glfw::detail {
 			default:
 				return EMouseButton::none;
 		}
+	}
+
+	auto create_monitor_based_on_window_pos(GLFWwindow* window) -> std::unique_ptr<Monitor> {
+		GLFWmonitor* window_monitor = nullptr;
+
+		if (detail::glfw_get_window_monitor(&window_monitor, window)) {
+			int32_t x, y;
+			glfwGetMonitorPos(window_monitor, &x, &y);
+
+			WorkArea work_area;
+			glfwGetMonitorWorkarea(
+			    window_monitor,
+			    &work_area.x,
+			    &work_area.y,
+			    &work_area.w,
+			    &work_area.h);
+
+			int32_t physical_width_mm;
+			int32_t physical_height_mm;
+			glfwGetMonitorPhysicalSize(window_monitor, &physical_width_mm, &physical_height_mm);
+
+			float scale_x, scale_y;
+			glfwGetMonitorContentScale(window_monitor, &scale_x, &scale_y);
+
+			const char* monitor_name = glfwGetMonitorName(window_monitor);
+
+			int32_t video_mode_count;
+			const GLFWvidmode* glfw_video_modes   = glfwGetVideoModes(window_monitor, &video_mode_count);
+			const GLFWvidmode* current_video_mode = glfwGetVideoMode(window_monitor);
+
+			std::vector<VideoMode> video_modes;
+			video_modes.reserve(video_mode_count);
+
+			size_t current_video_mode_index = 0;
+
+			for (int32_t i = 0; i < video_mode_count; ++i) {
+				const auto* mode = &glfw_video_modes[i];
+
+				if (current_video_mode->width == mode->width &&
+				    current_video_mode->height == mode->height &&
+				    current_video_mode->redBits == mode->redBits &&
+				    current_video_mode->greenBits == mode->greenBits &&
+				    current_video_mode->blueBits == mode->blueBits &&
+				    current_video_mode->refreshRate == mode->refreshRate) {
+					current_video_mode_index = static_cast<size_t>(i);
+				}
+
+				video_modes.emplace_back(
+				    std::make_pair(mode->width, mode->height),
+				    std::make_tuple(
+				        mode->redBits,
+				        mode->greenBits,
+				        mode->blueBits),
+				    mode->refreshRate);
+			}
+
+			return std::make_unique<Monitor>(
+			    std::make_pair(x, y),
+			    work_area,
+			    std::make_pair(physical_width_mm, physical_height_mm),
+			    std::make_pair(scale_x, scale_y),
+			    monitor_name ? monitor_name : "",
+			    std::move(video_modes),
+			    current_video_mode_index);
+		}
+
+		return nullptr;
+	}
+
+	auto glfw_get_mouse_monitor(GLFWmonitor** monitor, GLFWwindow* window) -> bool {
+		bool success = false;
+
+		double cursor_position[2] = { 0 };
+		glfwGetCursorPos(window, &cursor_position[0], &cursor_position[1]);
+
+		int window_position[2] = { 0 };
+		glfwGetWindowPos(window, &window_position[0], &window_position[1]);
+
+		int monitors_size      = 0;
+		GLFWmonitor** monitors = glfwGetMonitors(&monitors_size);
+
+		// convert cursor position from window coordinates to screen coordinates
+		cursor_position[0] += window_position[0];
+		cursor_position[1] += window_position[1];
+
+		for (int i = 0; ((!success) && (i < monitors_size)); ++i) {
+			int monitor_position[2] = { 0 };
+			glfwGetMonitorPos(monitors[i], &monitor_position[0], &monitor_position[1]);
+
+			const GLFWvidmode* monitor_video_mode = glfwGetVideoMode(monitors[i]);
+
+			if (
+			    (cursor_position[0] < monitor_position[0]) ||
+			    (cursor_position[0] > (monitor_position[0] + monitor_video_mode->width)) ||
+			    (cursor_position[1] < monitor_position[1]) ||
+			    (cursor_position[1] > (monitor_position[1] + monitor_video_mode->height))) {
+				*monitor = monitors[i];
+				success  = true;
+			}
+		}
+
+		return success;
+	}
+
+	auto glfw_get_window_monitor(GLFWmonitor** monitor, GLFWwindow* window) -> bool {
+		bool success = false;
+
+		int window_rectangle[4] = { 0 };
+		glfwGetWindowPos(window, &window_rectangle[0], &window_rectangle[1]);
+		glfwGetWindowSize(window, &window_rectangle[2], &window_rectangle[3]);
+
+		int monitors_size      = 0;
+		GLFWmonitor** monitors = glfwGetMonitors(&monitors_size);
+
+		GLFWmonitor* closest_monitor = NULL;
+		int max_overlap_area         = 0;
+
+		for (int i = 0; i < monitors_size; ++i) {
+			int monitor_position[2] = { 0 };
+			glfwGetMonitorPos(monitors[i], &monitor_position[0], &monitor_position[1]);
+			const GLFWvidmode* monitor_video_mode = glfwGetVideoMode(monitors[i]);
+
+			int monitor_rectangle[4] = {
+				monitor_position[0],
+				monitor_position[1],
+				monitor_video_mode->width,
+				monitor_video_mode->height
+			};
+
+			if (
+			    !(
+			        ((window_rectangle[0] + window_rectangle[2]) < monitor_rectangle[0]) ||
+			        (window_rectangle[0] > (monitor_rectangle[0] + monitor_rectangle[2])) ||
+			        ((window_rectangle[1] + window_rectangle[3]) < monitor_rectangle[1]) ||
+			        (window_rectangle[1] > (monitor_rectangle[1] + monitor_rectangle[3])))) {
+				int intersection_rectangle[4] = { 0 };
+
+				// x, width
+				if (window_rectangle[0] < monitor_rectangle[0]) {
+					intersection_rectangle[0] = monitor_rectangle[0];
+
+					if ((window_rectangle[0] + window_rectangle[2]) < (monitor_rectangle[0] + monitor_rectangle[2])) {
+						intersection_rectangle[2] = (window_rectangle[0] + window_rectangle[2]) - intersection_rectangle[0];
+					} else {
+						intersection_rectangle[2] = monitor_rectangle[2];
+					}
+				} else {
+					intersection_rectangle[0] = window_rectangle[0];
+
+					if ((monitor_rectangle[0] + monitor_rectangle[2]) < (window_rectangle[0] + window_rectangle[2])) {
+						intersection_rectangle[2] = (monitor_rectangle[0] + monitor_rectangle[2]) - intersection_rectangle[0];
+					} else {
+						intersection_rectangle[2] = window_rectangle[2];
+					}
+				}
+
+				// y, height
+				if (window_rectangle[1] < monitor_rectangle[1]) {
+					intersection_rectangle[1] = monitor_rectangle[1];
+
+					if ((window_rectangle[1] + window_rectangle[3]) < (monitor_rectangle[1] + monitor_rectangle[3])) {
+						intersection_rectangle[3] = (window_rectangle[1] + window_rectangle[3]) - intersection_rectangle[1];
+					} else {
+						intersection_rectangle[3] = monitor_rectangle[3];
+					}
+				} else {
+					intersection_rectangle[1] = window_rectangle[1];
+
+					if ((monitor_rectangle[1] + monitor_rectangle[3]) < (window_rectangle[1] + window_rectangle[3])) {
+						intersection_rectangle[3] = (monitor_rectangle[1] + monitor_rectangle[3]) - intersection_rectangle[1];
+					} else {
+						intersection_rectangle[3] = window_rectangle[3];
+					}
+				}
+
+				int overlap_area = intersection_rectangle[2] * intersection_rectangle[3];
+				if (overlap_area > max_overlap_area) {
+					closest_monitor  = monitors[i];
+					max_overlap_area = overlap_area;
+				}
+			}
+		}
+
+		if (closest_monitor) {
+			*monitor = closest_monitor;
+			success  = true;
+		}
+
+		return success;
 	}
 
 } // namespace aby::win::glfw::detail

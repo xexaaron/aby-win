@@ -9,7 +9,7 @@ namespace aby::win::sdl {
 
 	class Window : public win::Window {
 	public:
-		Window(std::string_view name, uint32_t w, uint32_t h, ERenderBackend backend, ETheme theme);
+		Window(const Config& config);
 		~Window();
 
 		auto set_name(std::string_view name) -> void override;
@@ -41,6 +41,7 @@ namespace aby::win::sdl {
 		auto fb_width() const -> uint32_t override;
 		auto fb_height() const -> uint32_t override;
 		auto fb_size() const -> std::pair<uint32_t, uint32_t> override;
+		auto monitor() const -> const Monitor* override;
 		auto listeners() -> std::span<WindowListener>;
 
 		auto focused() const -> bool override;

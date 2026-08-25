@@ -13,8 +13,10 @@ option(ABY_WIN_ENABLE_ASSERT "enable assertions. if turned off then only errors 
 add_library(${PROJECT_NAME} 
     src/window.cpp
     src/common.cpp
+    src/monitor.cpp
     src/backend/glfw/glfw-window.cpp
     src/backend/sdl/sdl-window.cpp
+    include/aby-win/monitor.hpp
     include/aby-win/window.hpp
     include/aby-win/common.hpp
 )

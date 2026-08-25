@@ -6,51 +6,51 @@
 
 namespace aby::win {
 
-	auto Window::create(EWindow window_backend, std::string_view name, uint32_t w, uint32_t h, ERenderBackend render_backend, ETheme theme) -> std::unique_ptr<Window> {
-		return create_unique(window_backend, name, w, h, render_backend, theme);
+	auto Window::create(const Config& config) -> std::unique_ptr<Window> {
+		return create_unique(config);
 	}
 
-	auto Window::create_raw(EWindow window_backend, std::string_view name, uint32_t w, uint32_t h, ERenderBackend render_backend, ETheme theme) -> Window* {
-		switch (window_backend) {
+	auto Window::create_raw(const Config& config) -> Window* {
+		switch (config.window_backend) {
 			case EWindow::glfw:
-				return new glfw::Window(name, w, h, render_backend, theme);
+				return new glfw::Window(config);
 			case EWindow::sdl:
-				return new sdl::Window(name, w, h, render_backend, theme);
+				return new sdl::Window(config);
 			default:
 				aby_win_assert(false, "unimplemented window backend");
 		}
 		return nullptr;
 	}
 
-	auto Window::create_unique(EWindow window_backend, std::string_view name, uint32_t w, uint32_t h, ERenderBackend render_backend, ETheme theme) -> std::unique_ptr<Window> {
-		switch (window_backend) {
+	auto Window::create_unique(const Config& config) -> std::unique_ptr<Window> {
+		switch (config.window_backend) {
 			case EWindow::glfw:
-				return std::make_unique<glfw::Window>(name, w, h, render_backend, theme);
+				return std::make_unique<glfw::Window>(config);
 			case EWindow::sdl:
-				return std::make_unique<sdl::Window>(name, w, h, render_backend, theme);
+				return std::make_unique<sdl::Window>(config);
 			default:
 				aby_win_assert(false, "unimplemented window backend");
 		}
 		return nullptr;
 	}
 
-	auto Window::create_shared(EWindow window_backend, std::string_view name, uint32_t w, uint32_t h, ERenderBackend render_backend, ETheme theme) -> std::shared_ptr<Window> {
-		switch (window_backend) {
+	auto Window::create_shared(const Config& config) -> std::shared_ptr<Window> {
+		switch (config.window_backend) {
 			case EWindow::glfw:
-				return std::make_shared<glfw::Window>(name, w, h, render_backend, theme);
+				return std::make_shared<glfw::Window>(config);
 			case EWindow::sdl:
-				return std::make_shared<sdl::Window>(name, w, h, render_backend, theme);
+				return std::make_shared<sdl::Window>(config);
 			default:
 				aby_win_assert(false, "unimplemented window backend");
 		}
 		return nullptr;
 	}
 
-	Window::Window(EWindow window_backend, std::string_view name, uint32_t w, uint32_t h, ERenderBackend render_backend, ETheme theme) :
-	    m_Name(name),
-	    m_RenderBackend(render_backend),
-	    m_WindowBackend(window_backend),
-	    m_Theme(theme) {
+	Window::Window(const Config& config) :
+	    m_Name(config.name),
+	    m_RenderBackend(config.render_backend),
+	    m_WindowBackend(config.window_backend),
+	    m_Theme(config.theme) {
 		if (!ILogger::get()) {
 			ILogger::set<DefaultLogger>();
 		}
@@ -62,6 +62,74 @@ namespace aby::win {
 
 	auto Window::theme() const -> ETheme {
 		return m_Theme;
+	}
+
+} // namespace aby::win
+
+namespace aby::win {
+
+	auto Config::set_name(std::string_view name) -> Config& {
+		this->name = name;
+		return *this;
+	}
+
+	auto Config::set_width(uint32_t w) -> Config& {
+		this->width = w;
+		return *this;
+	}
+
+	auto Config::set_height(uint32_t h) -> Config& {
+		this->height = h;
+		return *this;
+	}
+
+	auto Config::set_size(uint32_t w, uint32_t h) -> Config& {
+		this->width  = w;
+		this->height = h;
+		return *this;
+	}
+
+	auto Config::set_theme(ETheme theme) -> Config& {
+		this->theme = theme;
+		return *this;
+	}
+
+	auto Config::set_resizable(bool resizable) -> Config& {
+		this->resizable = resizable;
+		return *this;
+	}
+
+	auto Config::set_visible(bool visible) -> Config& {
+		this->visible = visible;
+		return *this;
+	}
+
+	auto Config::set_decorated(bool decorated) -> Config& {
+		this->decorated = decorated;
+		return *this;
+	}
+
+	auto Config::set_focused(bool focused) -> Config& {
+		this->focused = focused;
+		return *this;
+	}
+
+	auto Config::set_flags(bool resziable, bool visible, bool decorated, bool focused) -> Config& {
+		this->resizable = resizable;
+		this->visible   = visible;
+		this->decorated = decorated;
+		this->focused   = focused;
+		return *this;
+	}
+
+	auto Config::set_window_backend(EWindow backend) -> Config& {
+		this->window_backend = backend;
+		return *this;
+	}
+
+	auto Config::set_render_backend(ERenderBackend backend) -> Config& {
+		this->render_backend = backend;
+		return *this;
 	}
 
 } // namespace aby::win

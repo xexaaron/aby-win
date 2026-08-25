@@ -14,16 +14,29 @@ namespace aby::win::sdl::detail {
 
 namespace aby::win::sdl {
 
-	Window::Window(std::string_view name, uint32_t w, uint32_t h, ERenderBackend backend, ETheme theme) :
-	    win::Window(EWindow::sdl, name, w, h, backend, theme) {
+	Window::Window(const Config& config) :
+	    win::Window(config) {
 		if (!SDL_Init(SDL_INIT_VIDEO | SDL_INIT_JOYSTICK)) {
 			aby_win_err("[sdl] failed to initialize SDL: {}", SDL_GetError());
 			return;
 		}
 
-		SDL_WindowFlags flags = SDL_WINDOW_RESIZABLE;
+		SDL_WindowFlags flags;
+		if (config.resizable) {
+			flags |= SDL_WINDOW_RESIZABLE;
+		}
+		if (!config.visible) {
+			flags |= SDL_WINDOW_HIDDEN;
+		}
+		if (!config.decorated) {
+			flags |= SDL_WINDOW_BORDERLESS;
+		}
+		if (config.focused) {
+			flags |= SDL_WINDOW_INPUT_FOCUS;
+			flags |= SDL_WINDOW_MOUSE_FOCUS;
+		}
 
-		switch (backend) {
+		switch (config.render_backend) {
 			case ERenderBackend::opengl:
 				flags |= SDL_WINDOW_OPENGL;
 				break;
@@ -40,7 +53,7 @@ namespace aby::win::sdl {
 				break;
 		}
 
-		m_SDL = SDL_CreateWindow(m_Name.c_str(), static_cast<int>(w), static_cast<int>(h), flags);
+		m_SDL = SDL_CreateWindow(m_Name.c_str(), static_cast<int>(config.width), static_cast<int>(config.height), flags);
 
 		if (!m_SDL) {
 			aby_win_err("[sdl] failed to create window: {}", SDL_GetError());
@@ -502,6 +515,10 @@ namespace aby::win::sdl {
 			static_cast<uint32_t>(w),
 			static_cast<uint32_t>(h)
 		};
+	}
+
+	auto Window::monitor() const -> const Monitor* {
+		return nullptr;
 	}
 
 	auto Window::listeners() -> std::span<WindowListener> {
