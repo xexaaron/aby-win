@@ -33,7 +33,7 @@ namespace aby::win {
 
 	auto on_window_moved(WindowMovedEvent& event) -> bool {
 		if (!s_Window->monitor()) return false;
- 
+
 		if (s_MonitorName != s_Window->monitor()->name()) {
 			aby_win_log("monitor changed from: {} -> {}", s_MonitorName, s_Window->monitor()->name());
 			s_MonitorName = s_Window->monitor()->name();
@@ -47,7 +47,7 @@ int main(int argc, char** argv) {
 	using namespace aby::win;
 
 	Config cfg;
-	cfg.set_window_backend(EWindow::glfw)
+	cfg.set_window_backend(EWindow::sdl)
 	    .set_name("aby-win-test")
 	    .set_size(800, 600)
 	    .set_render_backend(ERenderBackend::none);

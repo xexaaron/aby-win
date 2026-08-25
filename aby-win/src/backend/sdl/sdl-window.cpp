@@ -10,6 +10,9 @@ namespace aby::win::sdl::detail {
 	auto to_mods(SDL_Keymod mods) -> EMod;
 	auto to_mouse_button(uint8_t button) -> EMouseButton;
 
+	auto sdl_get_phys_dp_size(SDL_DisplayID id) -> std::pair<int32_t, int32_t>;
+	auto sdl_get_current_monitor(SDL_Window* window) -> std::unique_ptr<Monitor>;
+
 } // namespace aby::win::sdl::detail
 
 namespace aby::win::sdl {
@@ -62,6 +65,8 @@ namespace aby::win::sdl {
 		}
 
 		SDL_SetWindowPosition(m_SDL, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED);
+
+		m_Monitor = detail::sdl_get_current_monitor(m_SDL);
 	}
 
 	Window::~Window() {
@@ -77,6 +82,7 @@ namespace aby::win::sdl {
 		m_Name = std::string(name);
 		SDL_SetWindowTitle(m_SDL, m_Name.data());
 	}
+
 	auto Window::set_width(uint32_t w) -> void {
 		SDL_SetWindowSize(m_SDL, w, height());
 	}
@@ -193,6 +199,7 @@ namespace aby::win::sdl {
 					break;
 				}
 				case SDL_EVENT_WINDOW_MOVED: {
+					m_Monitor = detail::sdl_get_current_monitor(m_SDL);
 					WindowMovedEvent event(sdl_event.window.data1, sdl_event.window.data2);
 					dispatch(event);
 					break;
@@ -518,7 +525,7 @@ namespace aby::win::sdl {
 	}
 
 	auto Window::monitor() const -> const Monitor* {
-		return nullptr;
+		return m_Monitor.get();
 	}
 
 	auto Window::listeners() -> std::span<WindowListener> {
@@ -831,6 +838,73 @@ namespace aby::win::sdl::detail {
 					    static_cast<uint8_t>(EMouseButton::button_4) + (button - SDL_BUTTON_X1));
 
 				return EMouseButton::none;
+		}
+	}
+
+	auto sdl_get_phys_dp_size(SDL_DisplayID id) -> std::pair<int32_t, int32_t> {
+		const SDL_DisplayMode* mode;
+		if (mode = SDL_GetCurrentDisplayMode(id); !mode) {
+			aby_win_err("[sdl] failed to get display mode: {}", SDL_GetError());
+			return std::make_pair(0, 0);
+		}
+
+		float dpi = SDL_GetDisplayContentScale(id);
+		float win = mode->w / dpi;
+		float hin = mode->h / dpi;
+		return std::make_pair(static_cast<int32_t>(win), static_cast<int32_t>(hin));
+	}
+
+	auto sdl_get_current_monitor(SDL_Window* window) -> std::unique_ptr<Monitor> {
+		if (SDL_DisplayID monitor = SDL_GetDisplayForWindow(window); monitor != 0) {
+			const char* name        = SDL_GetDisplayName(monitor);
+			float scale             = SDL_GetDisplayContentScale(monitor);
+			int32_t display_mode_ct = 0;
+
+			SDL_DisplayMode** modes = SDL_GetFullscreenDisplayModes(monitor, &display_mode_ct);
+			std::vector<VideoMode> video_modes(display_mode_ct);
+			size_t current_video_mode           = 0;
+			const SDL_DisplayMode* current_mode = SDL_GetCurrentDisplayMode(monitor);
+
+			for (int32_t i = 0; i < display_mode_ct; i++) {
+				auto* mode                            = modes[i];
+				const SDL_PixelFormatDetails* details = SDL_GetPixelFormatDetails(mode->format);
+
+				if (mode->w == current_mode->w &&
+				    mode->h == current_mode->h &&
+				    mode->pixel_density == current_mode->pixel_density &&
+				    mode->refresh_rate == current_mode->refresh_rate &&
+				    mode->refresh_rate_denominator == current_mode->refresh_rate_denominator &&
+				    mode->refresh_rate_numerator == current_mode->refresh_rate_numerator) {
+					current_video_mode = static_cast<size_t>(i);
+				}
+				VideoMode m;
+				m.size         = std::make_pair(mode->w, mode->h);
+				m.refresh_rate = mode->refresh_rate;
+				m.channel_bits = {
+					details->Rbits,
+					details->Gbits,
+					details->Bbits
+				};
+				video_modes.push_back(m);
+			}
+
+			SDL_Rect bounds;
+			if (!SDL_GetDisplayBounds(monitor, &bounds)) {
+				aby_win_err("[sdl] failed to get the monitor bounds: {}", SDL_GetError());
+				return nullptr;
+			}
+
+			return std::make_unique<Monitor>(
+			    std::make_pair(bounds.x, bounds.y),
+			    WorkArea{ .x = bounds.x, .y = bounds.y, .w = bounds.w, .h = bounds.h },
+			    detail::sdl_get_phys_dp_size(monitor),
+			    std::make_pair(scale, scale),
+			    name ? name : "",
+			    video_modes,
+			    current_video_mode);
+		} else {
+			aby_win_err("[sdl] failed to get the monitor the window resides on: {}", SDL_GetError());
+			return nullptr;
 		}
 	}
 

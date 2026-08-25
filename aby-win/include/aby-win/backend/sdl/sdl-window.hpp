@@ -28,7 +28,6 @@ namespace aby::win::sdl {
 		auto maximize() -> void override;
 		auto show() -> void override;
 		auto hide() -> void override;
-
 		auto close() -> void override;
 		auto poll() -> void override;
 
@@ -59,9 +58,10 @@ namespace aby::win::sdl {
 			}
 		}
 	private:
-		SDL_Window* m_SDL = nullptr;
+		bool bShouldClose                  = false;
+		SDL_Window* m_SDL                  = nullptr;
+		std::unique_ptr<Monitor> m_Monitor = nullptr;
 		std::vector<WindowListener> m_Listeners;
-		bool bShouldClose = false;
 	};
 
 } // namespace aby::win::sdl
