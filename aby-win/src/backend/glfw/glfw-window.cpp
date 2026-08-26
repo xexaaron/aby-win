@@ -4,7 +4,8 @@
 
 #ifdef _WIN32
 #	define GLFW_EXPOSE_NATIVE_WIN32
-#	include <dwmapi.h>
+#	include <dwmapi.h>   // DwmSetWindowAttribute
+#	include <windowsx.h> // GET_X_LPARAM, GET_Y_LPARAM
 #	pragma comment(lib, "dwmapi.lib")
 #elif defined(__APPLE__)
 #	define GLFW_EXPOSE_NATIVE_COCOA
@@ -75,6 +76,10 @@ namespace aby::win::glfw::detail {
 		}
 	}
 
+#ifdef _WIN32
+	auto window_proc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam) -> LRESULT;
+#endif
+
 } // namespace aby::win::glfw::detail
 
 namespace aby::win::glfw {
@@ -93,6 +98,8 @@ namespace aby::win::glfw {
 		} else {
 			glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
 		}
+
+		bDecorated = config.decorated;
 
 		glfwWindowHint(GLFW_RESIZABLE, config.resizable ? GLFW_TRUE : GLFW_FALSE);
 		glfwWindowHint(GLFW_VISIBLE, config.visible ? GLFW_TRUE : GLFW_FALSE);
@@ -121,9 +128,14 @@ namespace aby::win::glfw {
 		glfwSetCursorEnterCallback(m_GLFW, &detail::cursor_enter_callback);
 		glfwSetScrollCallback(m_GLFW, &detail::scroll_callback);
 		glfwSetDropCallback(m_GLFW, &detail::drop_callback);
-		set_theme(config.theme);
+
+		if (bDecorated) {
+			set_theme(config.theme);
+		}
 
 		m_Monitor = detail::create_monitor_based_on_window_pos(m_GLFW);
+
+		glfwShowWindow(m_GLFW);
 	}
 
 	Window::~Window() {
@@ -233,12 +245,42 @@ namespace aby::win::glfw {
 #endif
 	}
 
-	auto Window::add_listener(WindowListener&& listener) -> void {
-		m_Listeners.push_back(std::move(listener));
+	auto Window::set_icon(const Icon& icon) -> void {
+		GLFWimage image{
+			.width  = static_cast<int32_t>(icon.width),
+			.height = static_cast<int32_t>(icon.height),
+			.pixels = reinterpret_cast<unsigned char*>(icon.pixels.data())
+		};
+		glfwSetWindowIcon(m_GLFW, 1, &image);
 	}
 
-	auto Window::internal_set_monitor(std::unique_ptr<Monitor>&& monitor) -> void {
-		m_Monitor = std::move(monitor);
+	auto Window::set_hit_test_config(const HitTestConfig& cfg) -> void {
+		if (bDecorated) {
+			aby_win_wrn("[glfw] The window was not set as undecorated. The hit test configuration will be ignored");
+		}
+
+		m_HitTestCfg = cfg;
+
+		if (bHitFnSet) {
+			return;
+		}
+#ifdef _WIN32
+		auto hwnd    = (HWND)native().platform_window;
+		m_OldWndProc = reinterpret_cast<WNDPROC>(
+		    SetWindowLongPtr(
+		        hwnd,
+		        GWLP_WNDPROC,
+		        reinterpret_cast<LONG_PTR>(&detail::window_proc)));
+
+		SetPropA(hwnd, "aby-win-window", this);
+#else
+		aby_win_err("[glfw] custom hit test configuration function not supported yet.");
+		return;
+#endif
+	}
+
+	auto Window::add_listener(WindowListener&& listener) -> void {
+		m_Listeners.push_back(std::move(listener));
 	}
 
 	auto Window::focus() -> void {
@@ -372,6 +414,21 @@ namespace aby::win::glfw {
 	auto Window::should_close() const -> bool {
 		return glfwWindowShouldClose(m_GLFW);
 	}
+
+	auto Window::internal_set_monitor(std::unique_ptr<Monitor>&& monitor) -> void {
+		m_Monitor = std::move(monitor);
+	}
+
+	auto Window::internal_get_hit_test_config() -> HitTestConfig& {
+		return m_HitTestCfg;
+	}
+
+#ifdef _WIN32
+	auto Window::internal_get_old_wnd_proc() -> void* {
+		return m_OldWndProc;
+	}
+
+#endif
 
 } // namespace aby::win::glfw
 
@@ -989,5 +1046,71 @@ namespace aby::win::glfw::detail {
 
 		return success;
 	}
+
+#ifdef _WIN32
+	auto window_proc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam) -> LRESULT {
+		auto* window = static_cast<Window*>(
+		    GetPropA(hwnd, "aby-win-window"));
+
+		if (msg == WM_NCHITTEST && window) {
+			auto& cfg = window->internal_get_hit_test_config();
+
+			POINT point{
+				GET_X_LPARAM(lparam),
+				GET_Y_LPARAM(lparam)
+			};
+
+			RECT rect;
+			GetWindowRect(hwnd, &rect);
+
+			const int x = point.x - rect.left;
+			const int y = point.y - rect.top;
+
+			const int width  = rect.right - rect.left;
+			const int height = rect.bottom - rect.top;
+
+			const int border = static_cast<int>(cfg.resize_border);
+
+			// Corners
+			if (x <= border && y <= border)
+				return HTTOPLEFT;
+
+			if (x >= width - border && y <= border)
+				return HTTOPRIGHT;
+
+			if (x <= border && y >= height - border)
+				return HTBOTTOMLEFT;
+
+			if (x >= width - border && y >= height - border)
+				return HTBOTTOMRIGHT;
+
+			// Edges
+			if (y <= border)
+				return HTTOP;
+
+			if (y >= height - border)
+				return HTBOTTOM;
+
+			if (x <= border)
+				return HTLEFT;
+
+			if (x >= width - border)
+				return HTRIGHT;
+
+			// Custom title bar
+			if (y <= static_cast<int>(cfg.title_bar_height))
+				return HTCAPTION;
+
+			return HTCLIENT;
+		}
+
+		return CallWindowProcA(
+		    (WNDPROC)window->internal_get_old_wnd_proc(),
+		    hwnd,
+		    msg,
+		    wparam,
+		    lparam);
+	}
+#endif
 
 } // namespace aby::win::glfw::detail

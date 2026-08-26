@@ -47,10 +47,9 @@ int main(int argc, char** argv) {
 	using namespace aby::win;
 
 	Config cfg;
-	cfg.set_window_backend(EWindow::sdl)
-	    .set_name("aby-win-test")
+	cfg.set_name("aby-win-test")
 	    .set_size(800, 600)
-	    .set_render_backend(ERenderBackend::none);
+	    .set_backends(EWindow::sdl, ERenderBackend::none);
 
 	s_Window = Window::create(cfg);
 	EventManager ev_manager;
@@ -61,8 +60,14 @@ int main(int argc, char** argv) {
 	s_Window->add_listener([&ev_manager](Event& event) -> bool {
 		EventDispatcher ev(event);
 		ev.dispatch(on_window_moved);
+		ev.dispatch(on_window_resize);
+		ev.dispatch(on_window_resize_lambda);
+		ev.dispatch(&EventManager::on_window_resize, &ev_manager);
 		return false;
 	});
+
+	s_Window->set_hit_test_config({ .resize_border    = 8,
+	                                .title_bar_height = 32 });
 
 	while (!s_Window->should_close()) {
 		s_Window->poll();

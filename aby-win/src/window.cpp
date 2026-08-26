@@ -132,4 +132,10 @@ namespace aby::win {
 		return *this;
 	}
 
+	auto Config::set_backends(EWindow window_backend, ERenderBackend render_backend) -> Config& {
+		this->window_backend = window_backend;
+		this->render_backend = render_backend;
+		return *this;
+	}
+
 } // namespace aby::win

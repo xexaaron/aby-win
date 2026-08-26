@@ -22,8 +22,9 @@ namespace aby::win::glfw {
 		auto set_cursor_mode(ECursorMode mode) -> void override;
 		auto set_cursor_pos(float x, float y) -> void override;
 		auto set_theme(ETheme theme) -> void override;
+		auto set_icon(const Icon& icon) -> void override;
+		auto set_hit_test_config(const HitTestConfig& cfg) -> void override;
 		auto add_listener(WindowListener&& listener) -> void override;
-		auto internal_set_monitor(std::unique_ptr<Monitor>&& monitor) -> void;
 
 		auto focus() -> void override;
 		auto minimize() -> void override;
@@ -51,14 +52,26 @@ namespace aby::win::glfw {
 		auto visible() const -> bool override;
 		auto fullscreened() -> bool override;
 		auto should_close() const -> bool override;
+
+		auto internal_set_monitor(std::unique_ptr<Monitor>&& monitor) -> void;
+		auto internal_get_hit_test_config() -> HitTestConfig&;
+#ifdef _WIN32
+		auto internal_get_old_wnd_proc() -> void*;
+#endif
 	private:
-		GLFWwindow* m_GLFW                 = nullptr;
+		bool bDecorated                    = true;
+		bool bHitFnSet                     = false;
 		uint32_t m_WindowedX               = 0;
 		uint32_t m_WindowedY               = 0;
 		uint32_t m_WindowedWidth           = 0;
 		uint32_t m_WindowedHeight          = 0;
+		HitTestConfig m_HitTestCfg         = {};
+		GLFWwindow* m_GLFW                 = nullptr;
 		std::unique_ptr<Monitor> m_Monitor = nullptr;
 		std::vector<WindowListener> m_Listeners;
+#ifdef _WIN32
+		void* m_OldWndProc;
+#endif
 	};
 
 } // namespace aby::win::glfw

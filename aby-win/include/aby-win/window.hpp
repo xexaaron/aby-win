@@ -38,6 +38,19 @@ namespace aby::win {
 		EWindow backend;       // glfw, sdl
 	};
 
+	/// @brief Loader independent icon structure.
+	struct Icon {
+		uint32_t width;              // the icon width. (16, 32, 48)
+		uint32_t height;             // the icon height (16, 32, 48)
+		std::span<std::byte> pixels; // the pixel data
+	};
+
+	/// @brief Used for custom undecorated windows
+	struct HitTestConfig {
+		uint32_t resize_border    = 8;  // px length of the resize border
+		uint32_t title_bar_height = 32; // px length of the title bar height
+	};
+
 	/**
 	 * @brief A Listener function
 	 * @param Event& a polymorphic event object to be used with an EventDispatcher
@@ -49,15 +62,17 @@ namespace aby::win {
 		auto set_name(std::string_view name) -> Config&;
 		auto set_width(uint32_t w) -> Config&;
 		auto set_height(uint32_t h) -> Config&;
-		auto set_size(uint32_t w, uint32_t h) -> Config&;
 		auto set_theme(ETheme theme) -> Config&;
 		auto set_resizable(bool resizable) -> Config&;
 		auto set_visible(bool visible) -> Config&;
 		auto set_decorated(bool decorated) -> Config&;
 		auto set_focused(bool focused) -> Config&;
-		auto set_flags(bool resziable, bool visible, bool decorated, bool focused) -> Config&;
 		auto set_window_backend(EWindow backend) -> Config&;
 		auto set_render_backend(ERenderBackend backend) -> Config&;
+
+		auto set_size(uint32_t w, uint32_t h) -> Config&;
+		auto set_flags(bool resziable, bool visible, bool decorated, bool focused) -> Config&;
+		auto set_backends(EWindow window_backend, ERenderBackend render_backend) -> Config&;
 
 		std::string_view name         = "";                   // the title
 		uint32_t width                = 800;                  // the initial width
@@ -105,55 +120,66 @@ namespace aby::win {
 		 * @brief Set the window title
 		 * @param name The new title
 		 */
-		virtual auto set_name(std::string_view name) -> void         = 0;
+		virtual auto set_name(std::string_view name) -> void               = 0;
 		/**
 		 * @brief Set the window width
 		 * @param w The new width
 		 */
-		virtual auto set_width(uint32_t w) -> void                   = 0;
+		virtual auto set_width(uint32_t w) -> void                         = 0;
 		/**
 		 * @brief Set the window height
 		 * @param h The new height
 		 */
-		virtual auto set_height(uint32_t h) -> void                  = 0;
+		virtual auto set_height(uint32_t h) -> void                        = 0;
 		/**
 		 * @brief Set the window size
 		 * @param w The new width
 		 * @param h The new height
 		 */
-		virtual auto set_size(uint32_t w, uint32_t h) -> void        = 0;
+		virtual auto set_size(uint32_t w, uint32_t h) -> void              = 0;
 		/**
 		 * @brief Set the window position
 		 * @param x The new x position
 		 * @param y The new y position
 		 */
-		virtual auto set_position(int32_t x, int32_t y) -> void      = 0;
+		virtual auto set_position(int32_t x, int32_t y) -> void            = 0;
 		/**
 		 * @brief Set the fullscreen mode
 		 * @param fullscreen [true|false]
 		 */
-		virtual auto set_fullscreen(bool fullscreen) -> void         = 0;
+		virtual auto set_fullscreen(bool fullscreen) -> void               = 0;
 		/**
 		 * @brief Set the cursor mode
 		 * @param mode [normal, hidden, disabled]
 		 */
-		virtual auto set_cursor_mode(ECursorMode mode) -> void       = 0;
+		virtual auto set_cursor_mode(ECursorMode mode) -> void             = 0;
 		/**
 		 * @brief Set the cursor position
 		 * @param x The new x position
 		 * @param y The new y position
 		 */
-		virtual auto set_cursor_pos(float x, float y) -> void        = 0;
+		virtual auto set_cursor_pos(float x, float y) -> void              = 0;
 		/**
 		 * @brief Set the window decoration theme
 		 * @param theme [dark|light|automatic]
 		 */
-		virtual auto set_theme(ETheme theme) -> void                 = 0;
+		virtual auto set_theme(ETheme theme) -> void                       = 0;
+		/**
+		 * @brief Set the window icon
+		 * @param icon a loaded image 
+		 * @note The pixel data is expected to be in 32-bit RGBA format, 8 bits per channel.
+		 */
+		virtual auto set_icon(const Icon& icon) -> void                    = 0;
+		/**
+		 * @brief Set the hit test configuration for undecorated windows
+		 * @param cfg the configuration
+		 */
+		virtual auto set_hit_test_config(const HitTestConfig& cfg) -> void = 0;
 		/**
 		 * @brief Add an event listener
 		 * @param listener The new listener: [](Event&) -> bool
 		 */
-		virtual auto add_listener(WindowListener&& listener) -> void = 0;
+		virtual auto add_listener(WindowListener&& listener) -> void       = 0;
 
 		/**
 		 * @brief Set the window as the top window and then focus it for input

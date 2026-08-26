@@ -4,6 +4,7 @@
 #include <span>
 
 struct SDL_Window;
+struct SDL_Surface;
 
 namespace aby::win::sdl {
 
@@ -21,6 +22,8 @@ namespace aby::win::sdl {
 		auto set_cursor_mode(ECursorMode mode) -> void override;
 		auto set_cursor_pos(float x, float y) -> void override;
 		auto set_theme(ETheme theme) -> void override;
+		auto set_icon(const Icon& icon) -> void override;
+		auto set_hit_test_config(const HitTestConfig& cfg) -> void override;
 		auto add_listener(WindowListener&& listener) -> void override;
 
 		auto focus() -> void override;
@@ -59,9 +62,13 @@ namespace aby::win::sdl {
 		}
 	private:
 		bool bShouldClose                  = false;
+		bool bDecorated                    = false;
+		bool bHitFnSet                     = false;
 		SDL_Window* m_SDL                  = nullptr;
+		SDL_Surface* m_Icon                = nullptr;
 		std::unique_ptr<Monitor> m_Monitor = nullptr;
 		std::vector<WindowListener> m_Listeners;
+		HitTestConfig m_HitTestConfig;
 	};
 
 } // namespace aby::win::sdl

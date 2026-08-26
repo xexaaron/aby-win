@@ -34,6 +34,9 @@ namespace aby::win::sdl {
 		if (!config.decorated) {
 			flags |= SDL_WINDOW_BORDERLESS;
 		}
+
+		bDecorated = config.decorated;
+
 		if (config.focused) {
 			flags |= SDL_WINDOW_INPUT_FOCUS;
 			flags |= SDL_WINDOW_MOUSE_FOCUS;
@@ -70,6 +73,9 @@ namespace aby::win::sdl {
 	}
 
 	Window::~Window() {
+		if (m_Icon) {
+			SDL_DestroySurface(m_Icon);
+		}
 		if (m_SDL) {
 			SDL_DestroyWindow(m_SDL);
 			m_SDL = nullptr;
@@ -122,6 +128,77 @@ namespace aby::win::sdl {
 	auto Window::set_theme(ETheme theme) -> void {
 		m_Theme = theme;
 		aby_win_wrn("theme control not implemented for SDL, SDL Automatically tracks system the system theme");
+	}
+
+	auto Window::set_icon(const Icon& icon) -> void {
+		if (m_Icon) {
+			SDL_DestroySurface(m_Icon);
+		}
+		m_Icon = SDL_CreateSurfaceFrom(icon.width, icon.height, SDL_PIXELFORMAT_RGBA8888, icon.pixels.data(), icon.width * 4);
+		SDL_SetWindowIcon(m_SDL, m_Icon);
+	}
+
+	auto Window::set_hit_test_config(const HitTestConfig& cfg) -> void {
+		if (bDecorated) {
+			aby_win_wrn("[sdl] The window was not set as undecorated. The hit test configuration will be ignored");
+			return;
+		}
+
+		m_HitTestConfig = cfg;
+
+		if (bHitFnSet) {
+			return;
+		}
+
+		SDL_SetWindowHitTest(m_SDL, [](SDL_Window* win, const SDL_Point* p, void* user) -> SDL_HitTestResult {
+			auto* cfg = static_cast<HitTestConfig*>(user);
+
+			int width  = 0;
+			int height = 0;
+			SDL_GetWindowSize(win, &width, &height);
+
+			const int border = static_cast<int>(cfg->resize_border);
+
+			if (p->x <= border && p->y <= border) {
+				return SDL_HITTEST_RESIZE_TOPLEFT;
+			}
+
+			if (p->x >= width - border && p->y <= border) {
+				return SDL_HITTEST_RESIZE_TOPRIGHT;
+			}
+
+			if (p->x <= border && p->y >= height - border) {
+				return SDL_HITTEST_RESIZE_BOTTOMLEFT;
+			}
+
+			if (p->x >= width - border && p->y >= height - border) {
+				return SDL_HITTEST_RESIZE_BOTTOMRIGHT;
+			}
+
+			if (p->y <= border) {
+				return SDL_HITTEST_RESIZE_TOP;
+			}
+
+			if (p->y >= height - border) {
+				return SDL_HITTEST_RESIZE_BOTTOM;
+			}
+
+			if (p->x <= border) {
+				return SDL_HITTEST_RESIZE_LEFT;
+			}
+
+			if (p->x >= width - border) {
+				return SDL_HITTEST_RESIZE_RIGHT;
+			}
+
+			if (p->y <= static_cast<int>(cfg->title_bar_height)) {
+				return SDL_HITTEST_DRAGGABLE;
+			}
+
+			return SDL_HITTEST_NORMAL;
+		}, &m_HitTestConfig);
+
+		bHitFnSet = true;
 	}
 
 	auto Window::add_listener(WindowListener&& listener) -> void {
