@@ -24,7 +24,7 @@ namespace aby::win::sdl {
 			return;
 		}
 
-		SDL_WindowFlags flags;
+		SDL_WindowFlags flags = 0;
 		if (config.resizable) {
 			flags |= SDL_WINDOW_RESIZABLE;
 		}
