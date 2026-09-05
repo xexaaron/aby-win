@@ -241,7 +241,7 @@ namespace aby::win::glfw {
 		    &dark,
 		    sizeof(dark));
 #else
-		log_wrn("theme setting is not implemented on platforms other than win32 currently");
+		aby_win_wrn("theme setting is not implemented on platforms other than win32 currently");
 #endif
 	}
 

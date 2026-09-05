@@ -1,5 +1,6 @@
 #include "backend/sdl/sdl-window.hpp"
 
+#include "SDL3/SDL_hints.h"
 #include "common.hpp"
 
 #include <SDL3/SDL.h>
@@ -19,6 +20,12 @@ namespace aby::win::sdl {
 
 	Window::Window(const Config& config) :
 	    win::Window(config) {
+		if (config.render_doc) {
+			SDL_SetHint(SDL_HINT_VIDEO_DRIVER, "x11");
+		} else {
+			SDL_SetHint(SDL_HINT_VIDEO_DRIVER, "wayland");
+		}
+
 		if (!SDL_Init(SDL_INIT_VIDEO | SDL_INIT_JOYSTICK)) {
 			aby_win_err("[sdl] failed to initialize SDL: {}", SDL_GetError());
 			return;
@@ -563,7 +570,6 @@ namespace aby::win::sdl {
 		};
 
 #if defined(_WIN32)
-
 		SDL_PropertiesID props = SDL_GetWindowProperties(m_SDL);
 		out.platform_window    = SDL_GetPointerProperty(props, SDL_PROP_WINDOW_WIN32_HWND_POINTER, nullptr);
 #elif defined(__APPLE__)
@@ -571,8 +577,43 @@ namespace aby::win::sdl {
 		out.platform_window    = SDL_GetPointerProperty(props, SDL_PROP_WINDOW_COCOA_WINDOW_POINTER, nullptr);
 #elif defined(__linux__)
 		SDL_PropertiesID props = SDL_GetWindowProperties(m_SDL);
-		if (SDL_GetWindowWMInfo(m_SDL, nullptr)) {
-			// Platform-specific handling can go here.
+		const char* driver     = SDL_GetCurrentVideoDriver();
+
+		if (driver && SDL_strcmp(driver, "wayland") == 0) {
+			auto* display = SDL_GetPointerProperty(
+			    props,
+			    SDL_PROP_WINDOW_WAYLAND_DISPLAY_POINTER,
+			    nullptr);
+
+			auto* surface = SDL_GetPointerProperty(
+			    props,
+			    SDL_PROP_WINDOW_WAYLAND_SURFACE_POINTER,
+			    nullptr);
+
+			m_NativeHandles = {
+				display,
+				surface
+			};
+
+			out.platform_window = &m_NativeHandles;
+		} else if (driver && SDL_strcmp(driver, "x11") == 0) {
+			auto* display = SDL_GetPointerProperty(
+			    props,
+			    SDL_PROP_WINDOW_X11_DISPLAY_POINTER,
+			    nullptr);
+
+			auto window = static_cast<uintptr_t>(
+			    SDL_GetNumberProperty(
+			        props,
+			        SDL_PROP_WINDOW_X11_WINDOW_NUMBER,
+			        0));
+
+			m_NativeHandles = {
+				display,
+				reinterpret_cast<void*>(window)
+			};
+
+			out.platform_window = &m_NativeHandles;
 		}
 #endif
 		return out;

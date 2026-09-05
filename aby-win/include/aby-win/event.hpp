@@ -5,6 +5,7 @@
 #include <cstdint>
 #include <filesystem>
 #include <format>
+#include <functional>
 
 namespace aby::win {
 
@@ -428,7 +429,7 @@ namespace aby::win {
 namespace std {
 
 	template <>
-	struct std::formatter<aby::win::EEventCategory> : std::formatter<std::string_view> {
+	struct formatter<aby::win::EEventCategory> : formatter<std::string_view> {
 		auto format(aby::win::EEventCategory value, std::format_context& ctx) const {
 			using enum aby::win::EEventCategory;
 
@@ -453,12 +454,12 @@ namespace std {
 				return "unknown";
 			}();
 
-			return std::formatter<std::string_view>::format(name, ctx);
+			return formatter<std::string_view>::format(name, ctx);
 		}
 	};
 
 	template <>
-	struct std::formatter<aby::win::EEvent> : std::formatter<std::string_view> {
+	struct formatter<aby::win::EEvent> : formatter<std::string_view> {
 		auto format(aby::win::EEvent value, std::format_context& ctx) const {
 			using enum aby::win::EEvent;
 
@@ -519,12 +520,12 @@ namespace std {
 				return "unknown";
 			}();
 
-			return std::formatter<std::string_view>::format(name, ctx);
+			return formatter<std::string_view>::format(name, ctx);
 		}
 	};
 
 	template <>
-	struct std::formatter<aby::win::EKey> : std::formatter<std::string_view> {
+	struct formatter<aby::win::EKey> : formatter<std::string_view> {
 		auto format(aby::win::EKey value, std::format_context& ctx) const {
 			using enum aby::win::EKey;
 
@@ -762,13 +763,13 @@ namespace std {
 				return "unknown";
 			}();
 
-			return std::formatter<std::string_view>::format(name, ctx);
+			return formatter<std::string_view>::format(name, ctx);
 		}
 	};
 
 	template <>
-	struct std::formatter<aby::win::EMouseButton>
-	    : std::formatter<std::string_view> {
+	struct formatter<aby::win::EMouseButton>
+	    : formatter<std::string_view> {
 		auto format(aby::win::EMouseButton value, std::format_context& ctx) const {
 			using enum aby::win::EMouseButton;
 
@@ -799,19 +800,19 @@ namespace std {
 				return "unknown";
 			}();
 
-			return std::formatter<std::string_view>::format(name, ctx);
+			return formatter<std::string_view>::format(name, ctx);
 		}
 	};
 
 	template <>
-	struct std::formatter<aby::win::EMod> : std::formatter<std::string_view> {
+	struct formatter<aby::win::EMod> : formatter<std::string_view> {
 		auto format(aby::win::EMod value, std::format_context& ctx) const {
 			using namespace aby::win;
 
 			const auto bits = static_cast<uint8_t>(value);
 
 			if (bits == 0)
-				return std::formatter<std::string_view>::format("none", ctx);
+				return formatter<std::string_view>::format("none", ctx);
 
 			std::string out;
 
@@ -832,7 +833,7 @@ namespace std {
 			append("caps_lock", EMod::caps_lock);
 			append("num_lock", EMod::num_lock);
 
-			return std::formatter<std::string_view>::format(out, ctx);
+			return formatter<std::string_view>::format(out, ctx);
 		}
 	};
 

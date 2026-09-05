@@ -17,6 +17,8 @@ namespace aby::win {
 
 	} // namespace
 
+	std::unique_ptr<ILogger> ILogger::s_Logger = nullptr;
+
 	auto ILogger::get() -> ILogger* {
 		return s_Logger.get();
 	}

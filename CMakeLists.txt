@@ -10,7 +10,7 @@ set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/$<CONFIGURATION>)
 set(VENDOR_DIR ${CMAKE_CURRENT_SOURCE_DIR}/vendor)
 
 add_subdirectory(${VENDOR_DIR}/glfw)
-add_subdirectory(${VENDOR_DIR}/sdl)
+add_subdirectory(${VENDOR_DIR}/SDL)
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/aby-win)
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/test)
 

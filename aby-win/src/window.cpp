@@ -114,7 +114,7 @@ namespace aby::win {
 		return *this;
 	}
 
-	auto Config::set_flags(bool resziable, bool visible, bool decorated, bool focused) -> Config& {
+	auto Config::set_flags(bool resizable, bool visible, bool decorated, bool focused) -> Config& {
 		this->resizable = resizable;
 		this->visible   = visible;
 		this->decorated = decorated;
@@ -129,6 +129,11 @@ namespace aby::win {
 
 	auto Config::set_render_backend(ERenderBackend backend) -> Config& {
 		this->render_backend = backend;
+		return *this;
+	}
+
+	auto Config::set_render_doc(bool render_doc) -> Config& {
+		this->render_doc = render_doc;
 		return *this;
 	}
 

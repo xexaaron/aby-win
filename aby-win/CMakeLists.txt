@@ -26,13 +26,19 @@ add_library(${PROJECT_NAME}::${PROJECT_NAME} ALIAS ${PROJECT_NAME})
 target_include_directories(${PROJECT_NAME} PRIVATE
 PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/include
-PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/include/aby-win
+PRIVATE
     ${VENDOR_DIR}/glfw/include
     ${VENDOR_DIR}/SDL/include
 )
 
-target_link_libraries(${PROJECT_NAME} PRIVATE glfw SDL3::SDL3)
+target_link_libraries(${PROJECT_NAME} PRIVATE 
+    glfw
+    SDL3::SDL3
+    $<$<PLATFORM_ID:Linux>:wayland-client>
+    $<$<PLATFORM_ID:Linux>:X11>
+
+)
 
 target_compile_options(${PROJECT_NAME} PRIVATE
     $<$<CXX_COMPILER_ID:MSVC>:/WX /Zc:preprocessor>

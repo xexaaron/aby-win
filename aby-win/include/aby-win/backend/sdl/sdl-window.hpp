@@ -69,6 +69,9 @@ namespace aby::win::sdl {
 		std::unique_ptr<Monitor> m_Monitor = nullptr;
 		std::vector<WindowListener> m_Listeners;
 		HitTestConfig m_HitTestConfig;
+#ifdef __linux__
+		mutable std::pair<void*, void*> m_NativeHandles;
+#endif
 	};
 
 } // namespace aby::win::sdl

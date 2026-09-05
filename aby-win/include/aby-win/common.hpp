@@ -79,6 +79,8 @@ namespace aby::win {
 
 	class ILogger {
 	public:
+		virtual ~ILogger() = default;
+
 		static auto get() -> ILogger*;
 		static auto set(std::unique_ptr<ILogger> logger) -> void;
 		template <typename T>
@@ -89,7 +91,7 @@ namespace aby::win {
 
 		virtual auto log(ELogLevel level, const std::string& msg) -> void = 0;
 	private:
-		static inline std::unique_ptr<ILogger> s_Logger;
+		static std::unique_ptr<ILogger> s_Logger;
 	};
 
 	class DefaultLogger : public ILogger {

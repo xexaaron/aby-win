@@ -69,6 +69,7 @@ namespace aby::win {
 		auto set_focused(bool focused) -> Config&;
 		auto set_window_backend(EWindow backend) -> Config&;
 		auto set_render_backend(ERenderBackend backend) -> Config&;
+		auto set_render_doc(bool render_doc) -> Config&;
 
 		auto set_size(uint32_t w, uint32_t h) -> Config&;
 		auto set_flags(bool resziable, bool visible, bool decorated, bool focused) -> Config&;
@@ -82,6 +83,7 @@ namespace aby::win {
 		bool visible                  = true;                 // is the window initially visible.
 		bool decorated                = true;                 // does the window have a title bar
 		bool focused                  = true;                 // does the window start focused
+		bool render_doc               = false;                // use x11 over wayland to support vulkan render doc
 		EWindow window_backend        = EWindow::glfw;        // the windowing library
 		ERenderBackend render_backend = ERenderBackend::none; // the rendering backend
 	};
