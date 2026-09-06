@@ -88,8 +88,16 @@ namespace aby::win::glfw {
 	    win::Window(config) {
 		glfwSetErrorCallback(&detail::err_callback);
 
-		if (!glfwInit()) {
-			return;
+		bChildWindow = config.child;
+
+		if (!bChildWindow) {
+			if (!glfwInit()) {
+				return;
+			}
+			aby_win_dbg("[glfw] initialized backend");
+			bGlfwInitialized = true;
+		} else {
+			aby_win_assert(bGlfwInitialized, "cannot create a child window if there is no main window.");
 		}
 
 		if (config.render_backend == ERenderBackend::opengl) {
@@ -143,7 +151,11 @@ namespace aby::win::glfw {
 			glfwDestroyWindow(m_GLFW);
 			m_GLFW = nullptr;
 		}
-		glfwTerminate();
+
+		if (!bChildWindow) {
+			glfwTerminate();
+			aby_win_dbg("[glfw] deinitialized backend");
+		}
 	}
 
 	auto Window::set_name(std::string_view name) -> void {

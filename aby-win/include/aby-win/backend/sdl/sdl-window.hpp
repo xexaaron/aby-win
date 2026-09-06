@@ -64,6 +64,7 @@ namespace aby::win::sdl {
 		bool bShouldClose                  = false;
 		bool bDecorated                    = false;
 		bool bHitFnSet                     = false;
+		bool bChildWindow                  = false;
 		SDL_Window* m_SDL                  = nullptr;
 		SDL_Surface* m_Icon                = nullptr;
 		std::unique_ptr<Monitor> m_Monitor = nullptr;

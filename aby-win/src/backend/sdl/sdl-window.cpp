@@ -1,6 +1,8 @@
 #include "backend/sdl/sdl-window.hpp"
 
 #include "SDL3/SDL_hints.h"
+#include "SDL3/SDL_init.h"
+#include "SDL3/SDL_mutex.h"
 #include "common.hpp"
 
 #include <SDL3/SDL.h>
@@ -26,9 +28,19 @@ namespace aby::win::sdl {
 			SDL_SetHint(SDL_HINT_VIDEO_DRIVER, "wayland");
 		}
 
-		if (!SDL_Init(SDL_INIT_VIDEO | SDL_INIT_JOYSTICK)) {
-			aby_win_err("[sdl] failed to initialize SDL: {}", SDL_GetError());
-			return;
+		bChildWindow                         = config.child;
+		// If we are the main window then initialize the backend
+		static constexpr auto sdl_init_flags = SDL_INIT_VIDEO | SDL_INIT_JOYSTICK;
+		if (!bChildWindow) {
+			if (!SDL_Init(sdl_init_flags)) {
+				aby_win_err("[sdl] failed to initialize SDL: {}", SDL_GetError());
+				return;
+			}
+			aby_win_dbg("[sdl] initialized backend");
+		} else {
+			auto flags           = SDL_WasInit(sdl_init_flags);
+			bool sdl_initialized = (flags & sdl_init_flags) == sdl_init_flags;
+			aby_win_assert(sdl_initialized, "cannot create a child window if there is no main window.");
 		}
 
 		SDL_WindowFlags flags = 0;
@@ -88,7 +100,10 @@ namespace aby::win::sdl {
 			m_SDL = nullptr;
 		}
 
-		SDL_Quit();
+		if (!bChildWindow) {
+			SDL_Quit();
+			aby_win_dbg("[sdl] deinitialized backend");
+		}
 	}
 
 	auto Window::set_name(std::string_view name) -> void {

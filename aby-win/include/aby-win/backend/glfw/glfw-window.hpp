@@ -61,6 +61,7 @@ namespace aby::win::glfw {
 	private:
 		bool bDecorated                    = true;
 		bool bHitFnSet                     = false;
+		bool bChildWindow                  = false;
 		uint32_t m_WindowedX               = 0;
 		uint32_t m_WindowedY               = 0;
 		uint32_t m_WindowedWidth           = 0;
@@ -72,6 +73,7 @@ namespace aby::win::glfw {
 #ifdef _WIN32
 		void* m_OldWndProc;
 #endif
+		static inline bool bGlfwInitialized = false;
 	};
 
 } // namespace aby::win::glfw
