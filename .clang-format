@@ -6,7 +6,7 @@ InsertNewlineAtEOF: true
 Language: Cpp
 Standard: Latest
 MaxEmptyLinesToKeep: 1
-ReflowComments: false
+ReflowComments: "Never"
 SortUsingDeclarations: LexicographicNumeric
 FixNamespaceComments: true
 

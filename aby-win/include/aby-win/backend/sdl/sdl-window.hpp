@@ -2,7 +2,7 @@
 #include "window.hpp"
 
 #include <span>
-
+#include <unordered_map>
 struct SDL_Window;
 struct SDL_Surface;
 
@@ -44,7 +44,6 @@ namespace aby::win::sdl {
 		auto fb_height() const -> uint32_t override;
 		auto fb_size() const -> std::pair<uint32_t, uint32_t> override;
 		auto monitor() const -> const Monitor* override;
-		auto listeners() -> std::span<WindowListener>;
 
 		auto focused() const -> bool override;
 		auto minimized() const -> bool override;
@@ -54,13 +53,15 @@ namespace aby::win::sdl {
 		auto should_close() const -> bool override;
 
 		template <typename T>
-		auto dispatch(T& event) -> void {
-			for (auto& listener : m_Listeners) {
-				if (listener(event))
+		static auto dispatch(uint32_t id, T& event) -> void {
+			auto [begin, end] = s_Listeners.equal_range(id);
+			for (auto it = begin; it != end; ++it) {
+				if (it->second(event))
 					break;
 			}
 		}
 	private:
+		uint32_t m_ID                      = 0;
 		bool bShouldClose                  = false;
 		bool bDecorated                    = false;
 		bool bHitFnSet                     = false;
@@ -68,11 +69,11 @@ namespace aby::win::sdl {
 		SDL_Window* m_SDL                  = nullptr;
 		SDL_Surface* m_Icon                = nullptr;
 		std::unique_ptr<Monitor> m_Monitor = nullptr;
-		std::vector<WindowListener> m_Listeners;
 		HitTestConfig m_HitTestConfig;
 #ifdef __linux__
 		mutable std::pair<void*, void*> m_NativeHandles;
 #endif
+		static inline std::unordered_multimap<uint32_t, WindowListener> s_Listeners;
 	};
 
 } // namespace aby::win::sdl

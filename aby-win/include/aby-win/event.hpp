@@ -885,3 +885,23 @@ namespace aby::win {
 	}
 
 } // namespace aby::win
+
+namespace std {
+
+	template <>
+	struct formatter<aby::win::Event> : formatter<char> {
+		template <class ParseContext>
+		constexpr ParseContext::iterator parse(ParseContext& ctx) {
+			auto it = ctx.begin();
+			if (it != ctx.end() && *it != '}')
+				throw format_error("invalid format");
+			return it;
+		}
+
+		template <class FmtContext>
+		FmtContext::iterator format(const aby::win::Event& event, FmtContext& ctx) const {
+			return format_to(ctx.out(), "[name: {}, category: {}, type: {}]", event.name(), event.category(), event.type());
+		}
+	};
+
+} // namespace std

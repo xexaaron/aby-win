@@ -72,6 +72,8 @@ namespace aby::win::glfw {
 		std::vector<WindowListener> m_Listeners;
 #ifdef _WIN32
 		void* m_OldWndProc;
+#elif defined(__linux__)
+		mutable std::pair<void*, void*> m_NativeHandles;
 #endif
 		static inline bool bGlfwInitialized = false;
 	};

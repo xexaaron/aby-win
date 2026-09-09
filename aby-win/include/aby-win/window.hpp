@@ -42,7 +42,7 @@ namespace aby::win {
 	struct Icon {
 		uint32_t width;              // the icon width. (16, 32, 48)
 		uint32_t height;             // the icon height (16, 32, 48)
-		std::span<std::byte> pixels; // the pixel data
+		std::span<std::byte> pixels; // the pixel data in 32-bit RGBA format, 8 bits per channel.
 	};
 
 	/// @brief Used for custom undecorated windows
@@ -59,21 +59,35 @@ namespace aby::win {
 	using WindowListener = std::function<bool(Event&)>;
 
 	struct Config {
+		/// @brief Set the initial window title
 		auto set_name(std::string_view name) -> Config&;
+		/// @brief Set the initial window width
 		auto set_width(uint32_t w) -> Config&;
+		/// @brief Set the initial window height
 		auto set_height(uint32_t h) -> Config&;
+		/// @brief Set the initial window theme
 		auto set_theme(ETheme theme) -> Config&;
+		/// @brief Set the window resizability capability
 		auto set_resizable(bool resizable) -> Config&;
+		/// @brief Set the window initial visbility state
 		auto set_visible(bool visible) -> Config&;
+		/// @brief Set the window initial decoration state
 		auto set_decorated(bool decorated) -> Config&;
+		/// @brief Set the window initial focused state
 		auto set_focused(bool focused) -> Config&;
+		/// @brief Set the window backend to use [sdl, glfw]
 		auto set_window_backend(EWindow backend) -> Config&;
+		/// @brief Set the renderer backend to use for the window
 		auto set_render_backend(ERenderBackend backend) -> Config&;
+		/// @brief Set the native window to use x11 over wayland on linux to be render doc compatible with vulkan
 		auto set_render_doc(bool render_doc) -> Config&;
+		/// @brief Set the flag that dictates if this window initializes the window backend
 		auto set_child(bool child) -> Config&;
-
+		/// @brief Set the initial window width and height
 		auto set_size(uint32_t w, uint32_t h) -> Config&;
+		/// @brief Set the common window flags
 		auto set_flags(bool resziable, bool visible, bool decorated, bool focused) -> Config&;
+		/// @brief Set the window backend and the renderer backend
 		auto set_backends(EWindow window_backend, ERenderBackend render_backend) -> Config&;
 
 		std::string_view name         = "";                   // the title

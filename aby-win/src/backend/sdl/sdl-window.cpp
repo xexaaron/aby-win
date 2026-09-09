@@ -1,11 +1,18 @@
 #include "backend/sdl/sdl-window.hpp"
 
+#include "SDL3/SDL_events.h"
 #include "SDL3/SDL_hints.h"
 #include "SDL3/SDL_init.h"
 #include "SDL3/SDL_mutex.h"
+#include "SDL3/SDL_video.h"
 #include "common.hpp"
 
 #include <SDL3/SDL.h>
+
+#define sdl_window_guard(event, window_id)                  \
+	if (window_id != detail::sdl_get_event_window(event)) { \
+		break;                                              \
+	}
 
 namespace aby::win::sdl::detail {
 
@@ -15,6 +22,7 @@ namespace aby::win::sdl::detail {
 
 	auto sdl_get_phys_dp_size(SDL_DisplayID id) -> std::pair<int32_t, int32_t>;
 	auto sdl_get_current_monitor(SDL_Window* window) -> std::unique_ptr<Monitor>;
+	auto sdl_get_event_window(SDL_Event& event) -> uint32_t;
 
 } // namespace aby::win::sdl::detail
 
@@ -28,7 +36,8 @@ namespace aby::win::sdl {
 			SDL_SetHint(SDL_HINT_VIDEO_DRIVER, "wayland");
 		}
 
-		bChildWindow                         = config.child;
+		bChildWindow = config.child;
+
 		// If we are the main window then initialize the backend
 		static constexpr auto sdl_init_flags = SDL_INIT_VIDEO | SDL_INIT_JOYSTICK;
 		if (!bChildWindow) {
@@ -82,13 +91,17 @@ namespace aby::win::sdl {
 
 		if (!m_SDL) {
 			aby_win_err("[sdl] failed to create window: {}", SDL_GetError());
-			SDL_Quit();
+			if (!bChildWindow) {
+				SDL_Quit();
+			}
 			return;
 		}
-
+		m_ID = SDL_GetWindowID(m_SDL);
 		SDL_SetWindowPosition(m_SDL, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED);
 
 		m_Monitor = detail::sdl_get_current_monitor(m_SDL);
+
+		aby_win_dbg("[sdl] created window with id: {}", SDL_GetWindowID(m_SDL));
 	}
 
 	Window::~Window() {
@@ -96,10 +109,10 @@ namespace aby::win::sdl {
 			SDL_DestroySurface(m_Icon);
 		}
 		if (m_SDL) {
+			aby_win_dbg("[sdl] destroyed window with id: {}", SDL_GetWindowID(m_SDL));
 			SDL_DestroyWindow(m_SDL);
 			m_SDL = nullptr;
 		}
-
 		if (!bChildWindow) {
 			SDL_Quit();
 			aby_win_dbg("[sdl] deinitialized backend");
@@ -224,7 +237,7 @@ namespace aby::win::sdl {
 	}
 
 	auto Window::add_listener(WindowListener&& listener) -> void {
-		m_Listeners.push_back(std::move(listener));
+		s_Listeners.emplace(m_ID, std::move(listener));
 	}
 
 	auto Window::focus() -> void {
@@ -257,9 +270,6 @@ namespace aby::win::sdl {
 		while (SDL_PollEvent(&sdl_event)) {
 			switch (sdl_event.type) {
 				case SDL_EVENT_QUIT: {
-					bShouldClose = true;
-					WindowClosedEvent event;
-					dispatch(event);
 					break;
 				}
 				case SDL_EVENT_TERMINATING:
@@ -272,17 +282,17 @@ namespace aby::win::sdl {
 				case SDL_EVENT_SYSTEM_THEME_CHANGED:
 				case SDL_EVENT_DISPLAY_ORIENTATION: {
 					NativeEvent event(static_cast<void*>(&sdl_event));
-					dispatch(event);
+					dispatch(detail::sdl_get_event_window(sdl_event), event);
 					break;
 				}
 				case SDL_EVENT_DISPLAY_ADDED: {
 					MonitorConnectedEvent event(sdl_event.display.displayID);
-					dispatch(event);
+					dispatch(detail::sdl_get_event_window(sdl_event), event);
 					break;
 				}
 				case SDL_EVENT_DISPLAY_REMOVED: {
 					MonitorDisconnectedEvent event(sdl_event.display.displayID);
-					dispatch(event);
+					dispatch(detail::sdl_get_event_window(sdl_event), event);
 					break;
 				}
 				case SDL_EVENT_DISPLAY_MOVED:
@@ -294,67 +304,69 @@ namespace aby::win::sdl {
 				case SDL_EVENT_WINDOW_HIDDEN:
 				case SDL_EVENT_WINDOW_EXPOSED: {
 					NativeEvent event(static_cast<void*>(&sdl_event));
-					dispatch(event);
+					dispatch(detail::sdl_get_event_window(sdl_event), event);
 					break;
 				}
 				case SDL_EVENT_WINDOW_MOVED: {
 					m_Monitor = detail::sdl_get_current_monitor(m_SDL);
 					WindowMovedEvent event(sdl_event.window.data1, sdl_event.window.data2);
-					dispatch(event);
+					dispatch(detail::sdl_get_event_window(sdl_event), event);
 					break;
 				}
 				case SDL_EVENT_WINDOW_RESIZED: {
 					WindowResizedEvent event(
 					    static_cast<uint32_t>(sdl_event.window.data1),
 					    static_cast<uint32_t>(sdl_event.window.data2));
-					dispatch(event);
+					dispatch(detail::sdl_get_event_window(sdl_event), event);
 					break;
 				}
 				case SDL_EVENT_WINDOW_PIXEL_SIZE_CHANGED: {
 					WindowFramebufferResizedEvent event(
 					    static_cast<uint32_t>(sdl_event.window.data1),
 					    static_cast<uint32_t>(sdl_event.window.data2));
-					dispatch(event);
+					dispatch(detail::sdl_get_event_window(sdl_event), event);
 					break;
 				}
 				case SDL_EVENT_WINDOW_METAL_VIEW_RESIZED: {
 					NativeEvent event(&sdl_event);
-					dispatch(event);
+					dispatch(detail::sdl_get_event_window(sdl_event), event);
 					break;
 				}
 				case SDL_EVENT_WINDOW_MINIMIZED: {
 					WindowMinimizedEvent event;
-					dispatch(event);
+					dispatch(detail::sdl_get_event_window(sdl_event), event);
 					break;
 				}
 				case SDL_EVENT_WINDOW_MAXIMIZED: {
 					WindowMaximizedEvent event;
-					dispatch(event);
+					dispatch(detail::sdl_get_event_window(sdl_event), event);
 					break;
 				}
 				case SDL_EVENT_WINDOW_RESTORED:
 				case SDL_EVENT_WINDOW_MOUSE_ENTER: {
 					MouseEnteredEvent event;
-					dispatch(event);
+					dispatch(detail::sdl_get_event_window(sdl_event), event);
 					break;
 				}
 				case SDL_EVENT_WINDOW_MOUSE_LEAVE: {
 					MouseLeftEvent event;
-					dispatch(event);
+					dispatch(detail::sdl_get_event_window(sdl_event), event);
 					break;
 				}
 				case SDL_EVENT_WINDOW_FOCUS_GAINED: {
 					WindowFocusedEvent event;
-					dispatch(event);
+					dispatch(detail::sdl_get_event_window(sdl_event), event);
 					break;
 				}
 				case SDL_EVENT_WINDOW_FOCUS_LOST: {
 					NativeEvent event(&sdl_event);
-					dispatch(event);
+					dispatch(detail::sdl_get_event_window(sdl_event), event);
 					break;
 				}
 				case SDL_EVENT_WINDOW_CLOSE_REQUESTED: {
 					bShouldClose = true;
+					WindowClosedEvent event;
+					dispatch(detail::sdl_get_event_window(sdl_event), event);
 					break;
 				}
 				case SDL_EVENT_WINDOW_HIT_TEST:
@@ -369,33 +381,33 @@ namespace aby::win::sdl {
 				case SDL_EVENT_WINDOW_HDR_STATE_CHANGED:
 				case SDL_EVENT_WINDOW_SETTINGS_CHANGED: {
 					NativeEvent event(&sdl_event);
-					dispatch(event);
+					dispatch(detail::sdl_get_event_window(sdl_event), event);
 					break;
 				}
 				case SDL_EVENT_KEY_DOWN: {
 					auto ebutton = detail::to_key(sdl_event.key.key);
 					auto mods    = detail::to_mods(sdl_event.key.mod);
 					KeyPressedEvent event(ebutton);
-					dispatch(event);
+					dispatch(detail::sdl_get_event_window(sdl_event), event);
 					break;
 				}
 				case SDL_EVENT_KEY_UP: {
 					auto ebutton = detail::to_key(sdl_event.key.key);
 					auto mods    = detail::to_mods(sdl_event.key.mod);
 					KeyPressedEvent event(ebutton);
-					dispatch(event);
+					dispatch(detail::sdl_get_event_window(sdl_event), event);
 					break;
 				}
 				case SDL_EVENT_TEXT_EDITING: {
 					NativeEvent event(&sdl_event);
-					dispatch(event);
+					dispatch(detail::sdl_get_event_window(sdl_event), event);
 					break;
 				}
 				case SDL_EVENT_TEXT_INPUT: {
 					auto len = strlen(sdl_event.text.text);
 					for (size_t i = 0; i < len; i++) {
 						KeyTypedEvent event(static_cast<char32_t>(sdl_event.text.text[i]));
-						dispatch(event);
+						dispatch(detail::sdl_get_event_window(sdl_event), event);
 					}
 					break;
 				}
@@ -406,37 +418,37 @@ namespace aby::win::sdl {
 				case SDL_EVENT_SCREEN_KEYBOARD_SHOWN:
 				case SDL_EVENT_SCREEN_KEYBOARD_HIDDEN: {
 					NativeEvent event(&sdl_event);
-					dispatch(event);
+					dispatch(detail::sdl_get_event_window(sdl_event), event);
 					break;
 				}
 				case SDL_EVENT_MOUSE_MOTION: {
 					MouseMovedEvent event(sdl_event.motion.x, sdl_event.motion.y);
-					dispatch(event);
+					dispatch(detail::sdl_get_event_window(sdl_event), event);
 					break;
 				}
 				case SDL_EVENT_MOUSE_BUTTON_DOWN: {
 					auto ebutton = detail::to_mouse_button(sdl_event.button.button);
 					auto emods   = detail::to_mods(SDL_GetModState());
 					MousePressedEvent event(ebutton, emods);
-					dispatch(event);
+					dispatch(detail::sdl_get_event_window(sdl_event), event);
 					break;
 				}
 				case SDL_EVENT_MOUSE_BUTTON_UP: {
 					auto ebutton = detail::to_mouse_button(sdl_event.button.button);
 					auto emods   = detail::to_mods(SDL_GetModState());
 					MouseReleasedEvent event(ebutton, emods);
-					dispatch(event);
+					dispatch(detail::sdl_get_event_window(sdl_event), event);
 					break;
 				}
 				case SDL_EVENT_MOUSE_WHEEL: {
 					MouseScrolledEvent event(sdl_event.button.x, sdl_event.button.y);
-					dispatch(event);
+					dispatch(detail::sdl_get_event_window(sdl_event), event);
 					break;
 				}
 				case SDL_EVENT_MOUSE_ADDED:
 				case SDL_EVENT_MOUSE_REMOVED: {
 					NativeEvent event(&sdl_event);
-					dispatch(event);
+					dispatch(detail::sdl_get_event_window(sdl_event), event);
 					break;
 				}
 				case SDL_EVENT_JOYSTICK_AXIS_MOTION:
@@ -449,7 +461,7 @@ namespace aby::win::sdl {
 				case SDL_EVENT_JOYSTICK_BATTERY_UPDATED:
 				case SDL_EVENT_JOYSTICK_UPDATE_COMPLETE: {
 					NativeEvent event(&sdl_event);
-					dispatch(event);
+					dispatch(detail::sdl_get_event_window(sdl_event), event);
 					break;
 				}
 				case SDL_EVENT_GAMEPAD_AXIS_MOTION:
@@ -467,7 +479,7 @@ namespace aby::win::sdl {
 				case SDL_EVENT_GAMEPAD_CAPSENSE_TOUCH:
 				case SDL_EVENT_GAMEPAD_CAPSENSE_RELEASE: {
 					NativeEvent event(&sdl_event);
-					dispatch(event);
+					dispatch(detail::sdl_get_event_window(sdl_event), event);
 					break;
 				}
 				case SDL_EVENT_FINGER_DOWN:
@@ -475,24 +487,24 @@ namespace aby::win::sdl {
 				case SDL_EVENT_FINGER_MOTION:
 				case SDL_EVENT_FINGER_CANCELED: {
 					NativeEvent event(&sdl_event);
-					dispatch(event);
+					dispatch(detail::sdl_get_event_window(sdl_event), event);
 					break;
 				}
 				case SDL_EVENT_PINCH_BEGIN:
 				case SDL_EVENT_PINCH_UPDATE:
 				case SDL_EVENT_PINCH_END: {
 					NativeEvent event(&sdl_event);
-					dispatch(event);
+					dispatch(detail::sdl_get_event_window(sdl_event), event);
 					break;
 				}
 				case SDL_EVENT_CLIPBOARD_UPDATE: {
 					NativeEvent event(&sdl_event);
-					dispatch(event);
+					dispatch(detail::sdl_get_event_window(sdl_event), event);
 					break;
 				}
 				case SDL_EVENT_DROP_FILE: {
 					FileDroppedEvent event(sdl_event.drop.data);
-					dispatch(event);
+					dispatch(detail::sdl_get_event_window(sdl_event), event);
 					break;
 				}
 				case SDL_EVENT_DROP_TEXT:
@@ -500,19 +512,19 @@ namespace aby::win::sdl {
 				case SDL_EVENT_DROP_COMPLETE:
 				case SDL_EVENT_DROP_POSITION: {
 					NativeEvent event(&sdl_event);
-					dispatch(event);
+					dispatch(detail::sdl_get_event_window(sdl_event), event);
 					break;
 				}
 				case SDL_EVENT_AUDIO_DEVICE_ADDED:
 				case SDL_EVENT_AUDIO_DEVICE_REMOVED:
 				case SDL_EVENT_AUDIO_DEVICE_FORMAT_CHANGED: {
 					NativeEvent event(&sdl_event);
-					dispatch(event);
+					dispatch(detail::sdl_get_event_window(sdl_event), event);
 					break;
 				}
 				case SDL_EVENT_SENSOR_UPDATE: {
 					NativeEvent event(&sdl_event);
-					dispatch(event);
+					dispatch(detail::sdl_get_event_window(sdl_event), event);
 					break;
 				}
 				case SDL_EVENT_PEN_PROXIMITY_IN:
@@ -524,7 +536,7 @@ namespace aby::win::sdl {
 				case SDL_EVENT_PEN_MOTION:
 				case SDL_EVENT_PEN_AXIS: {
 					NativeEvent event(&sdl_event);
-					dispatch(event);
+					dispatch(detail::sdl_get_event_window(sdl_event), event);
 					break;
 				}
 				case SDL_EVENT_CAMERA_DEVICE_ADDED:
@@ -532,7 +544,7 @@ namespace aby::win::sdl {
 				case SDL_EVENT_CAMERA_DEVICE_APPROVED:
 				case SDL_EVENT_CAMERA_DEVICE_DENIED: {
 					NativeEvent event(&sdl_event);
-					dispatch(event);
+					dispatch(detail::sdl_get_event_window(sdl_event), event);
 					break;
 				}
 				case SDL_EVENT_NOTIFICATION_ACTION_INVOKED:
@@ -540,7 +552,7 @@ namespace aby::win::sdl {
 				case SDL_EVENT_RENDER_DEVICE_RESET:
 				case SDL_EVENT_RENDER_DEVICE_LOST: {
 					NativeEvent event(&sdl_event);
-					dispatch(event);
+					dispatch(detail::sdl_get_event_window(sdl_event), event);
 					break;
 				}
 				case SDL_EVENT_POLL_SENTINEL:
@@ -659,10 +671,6 @@ namespace aby::win::sdl {
 
 	auto Window::monitor() const -> const Monitor* {
 		return m_Monitor.get();
-	}
-
-	auto Window::listeners() -> std::span<WindowListener> {
-		return m_Listeners;
 	}
 
 	auto Window::focused() const -> bool {
@@ -1038,6 +1046,52 @@ namespace aby::win::sdl::detail {
 		} else {
 			aby_win_err("[sdl] failed to get the monitor the window resides on: {}", SDL_GetError());
 			return nullptr;
+		}
+	}
+
+	auto sdl_get_event_window(SDL_Event& event) -> uint32_t {
+		switch (event.type) {
+			case SDL_EVENT_WINDOW_SHOWN:
+			case SDL_EVENT_WINDOW_HIDDEN:
+			case SDL_EVENT_WINDOW_EXPOSED:
+			case SDL_EVENT_WINDOW_MOVED:
+			case SDL_EVENT_WINDOW_RESIZED:
+			case SDL_EVENT_WINDOW_PIXEL_SIZE_CHANGED:
+			case SDL_EVENT_WINDOW_METAL_VIEW_RESIZED:
+			case SDL_EVENT_WINDOW_MINIMIZED:
+			case SDL_EVENT_WINDOW_MAXIMIZED:
+			case SDL_EVENT_WINDOW_RESTORED:
+			case SDL_EVENT_WINDOW_MOUSE_ENTER:
+			case SDL_EVENT_WINDOW_MOUSE_LEAVE:
+			case SDL_EVENT_WINDOW_FOCUS_GAINED:
+			case SDL_EVENT_WINDOW_FOCUS_LOST:
+			case SDL_EVENT_WINDOW_CLOSE_REQUESTED:
+			case SDL_EVENT_WINDOW_HIT_TEST:
+			case SDL_EVENT_WINDOW_ICCPROF_CHANGED:
+			case SDL_EVENT_WINDOW_DISPLAY_CHANGED:
+			case SDL_EVENT_WINDOW_DISPLAY_SCALE_CHANGED:
+			case SDL_EVENT_WINDOW_SAFE_AREA_CHANGED:
+			case SDL_EVENT_WINDOW_OCCLUDED:
+			case SDL_EVENT_WINDOW_ENTER_FULLSCREEN:
+			case SDL_EVENT_WINDOW_LEAVE_FULLSCREEN:
+			case SDL_EVENT_WINDOW_DESTROYED:
+			case SDL_EVENT_WINDOW_HDR_STATE_CHANGED:
+			case SDL_EVENT_WINDOW_SETTINGS_CHANGED:
+				return event.window.windowID;
+			case SDL_EVENT_KEY_DOWN:
+			case SDL_EVENT_KEY_UP:
+				return event.key.windowID;
+			case SDL_EVENT_TEXT_EDITING:
+			case SDL_EVENT_TEXT_INPUT:
+				return event.text.windowID;
+			case SDL_EVENT_MOUSE_MOTION:
+				return event.motion.windowID;
+			case SDL_EVENT_MOUSE_BUTTON_DOWN:
+			case SDL_EVENT_MOUSE_BUTTON_UP:
+			case SDL_EVENT_MOUSE_WHEEL:
+				return event.button.windowID;
+			default:
+				return 0;
 		}
 	}
 

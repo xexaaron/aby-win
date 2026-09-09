@@ -90,6 +90,11 @@ namespace aby::win::glfw {
 
 		bChildWindow = config.child;
 
+		if (config.render_doc) {
+			// Wayland doesnt work with vulkan and renderdoc
+			glfwInitHint(GLFW_PLATFORM, GLFW_PLATFORM_X11);
+		}
+
 		if (!bChildWindow) {
 			if (!glfwInit()) {
 				return;
@@ -113,9 +118,11 @@ namespace aby::win::glfw {
 		glfwWindowHint(GLFW_VISIBLE, config.visible ? GLFW_TRUE : GLFW_FALSE);
 		glfwWindowHint(GLFW_DECORATED, config.decorated ? GLFW_TRUE : GLFW_FALSE);
 		glfwWindowHint(GLFW_FOCUSED, config.focused ? GLFW_TRUE : GLFW_FALSE);
-
 		if (m_GLFW = glfwCreateWindow(config.width, config.height, m_Name.data(), NULL, NULL); !m_GLFW) {
-			glfwTerminate();
+			if (!bChildWindow) {
+				glfwTerminate();
+				bGlfwInitialized = false;
+			}
 			return;
 		}
 
@@ -144,6 +151,8 @@ namespace aby::win::glfw {
 		m_Monitor = detail::create_monitor_based_on_window_pos(m_GLFW);
 
 		glfwShowWindow(m_GLFW);
+
+		aby_win_dbg("[glfw] created window: {}", m_Name);
 	}
 
 	Window::~Window() {
@@ -316,7 +325,13 @@ namespace aby::win::glfw {
 	}
 
 	auto Window::close() -> void {
+		if (!m_GLFW) return;
+
 		glfwSetWindowShouldClose(m_GLFW, GLFW_TRUE);
+		if (bChildWindow && m_GLFW) {
+			glfwHideWindow(m_GLFW);
+			glfwDestroyWindow(m_GLFW);
+		}
 	}
 
 	auto Window::poll() -> void {
@@ -362,11 +377,13 @@ namespace aby::win::glfw {
 		out.platform_window = glfwGetCocoaWindow(m_GLFW);
 #elif defined(__linux__)
 		if (glfwGetPlatform() == GLFW_PLATFORM_WAYLAND) {
-			out.platform_window = glfwGetWaylandWindow(m_GLFW);
+			m_NativeHandles.first  = glfwGetWaylandDisplay();
+			m_NativeHandles.second = glfwGetWaylandWindow(m_GLFW);
+			out.platform_window    = &m_NativeHandles;
 		} else if (glfwGetPlatform() == GLFW_PLATFORM_X11) {
-			out.platform_window =
-			    reinterpret_cast<void*>(
-			        static_cast<uintptr_t>(glfwGetX11Window(m_GLFW)));
+			m_NativeHandles.first  = glfwGetX11Display();
+			m_NativeHandles.second = reinterpret_cast<void*>(glfwGetX11Window(m_GLFW));
+			out.platform_window    = &m_NativeHandles;
 		}
 #endif
 		out.backend = m_WindowBackend;
@@ -424,6 +441,7 @@ namespace aby::win::glfw {
 	}
 
 	auto Window::should_close() const -> bool {
+		if (!m_GLFW) return true;
 		return glfwWindowShouldClose(m_GLFW);
 	}
 
