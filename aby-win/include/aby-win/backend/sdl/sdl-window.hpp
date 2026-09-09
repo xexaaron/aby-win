@@ -44,6 +44,7 @@ namespace aby::win::sdl {
 		auto fb_height() const -> uint32_t override;
 		auto fb_size() const -> std::pair<uint32_t, uint32_t> override;
 		auto monitor() const -> const Monitor* override;
+		auto id() const -> uint32_t override;
 
 		auto focused() const -> bool override;
 		auto minimized() const -> bool override;
@@ -53,11 +54,20 @@ namespace aby::win::sdl {
 		auto should_close() const -> bool override;
 
 		template <typename T>
-		static auto dispatch(uint32_t id, T& event) -> void {
-			auto [begin, end] = s_Listeners.equal_range(id);
-			for (auto it = begin; it != end; ++it) {
-				if (it->second(event))
-					break;
+		static auto dispatch(T& event) -> void {
+			if (event.window() == 0) {
+				for (auto [id, listener] : s_Listeners) {
+					if (listener(event)) {
+						break;
+					}
+				}
+			} else {
+				auto [begin, end] = s_Listeners.equal_range(event.window());
+				for (auto it = begin; it != end; ++it) {
+					if (it->second(event)) {
+						break;
+					}
+				}
 			}
 		}
 	private:

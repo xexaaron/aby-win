@@ -224,10 +224,11 @@ namespace aby::win {
 		 */
 		virtual auto close() -> void    = 0;
 		/**
-		 * @brief Poll all pending events (blocking)
+		 * @brief Poll all pending events for all windows (blocking)
+		 * @warning This should ONLY be called once per frame by the MAIN window.
+		 * 			Each window will process events via their listeners.
 		 */
 		virtual auto poll() -> void     = 0;
-
 		/**
 		 * @brief Get the window title
 		 */
@@ -276,31 +277,34 @@ namespace aby::win {
 		 * @brief Get the current monitor that the window is *mostly* on
 		*/
 		virtual auto monitor() const -> const Monitor*                = 0;
-
+		/**
+		* @brief Get the window ID
+		*/
+		virtual auto id() const -> uint32_t                           = 0;
 		/**
 		 * @brief Check if the window is focused
 		 */
-		virtual auto focused() const -> bool      = 0;
+		virtual auto focused() const -> bool                          = 0;
 		/**
 		 * @brief Check if the window is minimized
 		 */
-		virtual auto minimized() const -> bool    = 0;
+		virtual auto minimized() const -> bool                        = 0;
 		/**
 		 * @brief Check if the window is maximized
 		 */
-		virtual auto maximized() const -> bool    = 0;
+		virtual auto maximized() const -> bool                        = 0;
 		/**
 		 * @brief Check if the window is visible
 		 */
-		virtual auto visible() const -> bool      = 0;
+		virtual auto visible() const -> bool                          = 0;
 		/**
 		 * @brief Check if the window is in fullscreen mode
 		 */
-		virtual auto fullscreened() -> bool       = 0;
+		virtual auto fullscreened() -> bool                           = 0;
 		/**
 		 * @brief Check if the window should close
 		 */
-		virtual auto should_close() const -> bool = 0;
+		virtual auto should_close() const -> bool                     = 0;
 	protected:
 		std::string m_Name;
 		ERenderBackend m_RenderBackend;

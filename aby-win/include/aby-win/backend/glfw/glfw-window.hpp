@@ -44,6 +44,7 @@ namespace aby::win::glfw {
 		auto fb_height() const -> uint32_t override;
 		auto fb_size() const -> std::pair<uint32_t, uint32_t> override;
 		auto monitor() const -> const Monitor* override;
+		auto id() const -> uint32_t override;
 		auto listeners() -> std::span<WindowListener>;
 
 		auto focused() const -> bool override;
@@ -59,6 +60,7 @@ namespace aby::win::glfw {
 		auto internal_get_old_wnd_proc() -> void*;
 #endif
 	private:
+		uint32_t m_ID                      = 0;
 		bool bDecorated                    = true;
 		bool bHitFnSet                     = false;
 		bool bChildWindow                  = false;

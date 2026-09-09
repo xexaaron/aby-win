@@ -211,20 +211,32 @@ namespace aby::win {
 	 */
 	class Event {
 	public:
-		static auto static_type() -> EEvent {
+		/// @brief Get the compile time event type
+		static constexpr auto static_type() -> EEvent {
 			return EEvent::none;
 		}
 
+		/// @brief Get the event type
 		virtual auto type() const -> EEvent {
 			return EEvent::none;
 		}
 
+		/// @brief Get the event class name
 		virtual auto name() const -> std::string_view {
 			return "Event";
 		}
 
+		/// @brief Get the category associated with this event
 		virtual auto category() const -> EEventCategory {
 			return EEventCategory::none;
+		}
+
+		/**
+		* @brief Get the window id associated with this event
+		* @return 0 if its a global event, otherwise the window id.
+		*/
+		virtual auto window() const -> uint32_t {
+			return 0;
 		}
 	};
 
@@ -423,6 +435,53 @@ namespace aby::win {
 	    {
 		    uint32_t joystick;
 	    });
+
+} // namespace aby::win
+
+namespace aby::win {
+
+	constexpr auto operator|(EMod lhs, EMod rhs) -> EMod {
+		return static_cast<EMod>(static_cast<uint8_t>(lhs) | static_cast<uint8_t>(rhs));
+	}
+
+	constexpr auto operator|=(EMod& lhs, EMod rhs) -> EMod& {
+		lhs = lhs | rhs;
+		return lhs;
+	}
+
+	constexpr auto operator&(EMod lhs, EMod rhs) -> EMod {
+		return static_cast<EMod>(static_cast<uint8_t>(lhs) & static_cast<uint8_t>(rhs));
+	}
+
+	constexpr auto operator&=(EMod& lhs, EMod rhs) -> EMod& {
+		lhs = lhs & rhs;
+		return lhs;
+	}
+
+	constexpr auto operator^(EMod lhs, EMod rhs) -> EMod {
+		return static_cast<EMod>(static_cast<uint8_t>(lhs) ^ static_cast<uint8_t>(rhs));
+	}
+
+	constexpr auto operator^=(EMod& lhs, EMod rhs) -> EMod& {
+		lhs = lhs ^ rhs;
+		return lhs;
+	}
+
+	constexpr auto operator~(EMod value) -> EMod {
+		return static_cast<EMod>(~static_cast<uint8_t>(value));
+	}
+
+	constexpr auto operator!(EMod value) -> bool {
+		return value == EMod::none;
+	}
+
+	constexpr auto operator==(EMod lhs, EMod rhs) -> bool {
+		return static_cast<uint8_t>(lhs) == static_cast<uint8_t>(rhs);
+	}
+
+	constexpr auto operator!=(EMod lhs, EMod rhs) -> bool {
+		return !(lhs == rhs);
+	}
 
 } // namespace aby::win
 
@@ -836,57 +895,6 @@ namespace std {
 			return formatter<std::string_view>::format(out, ctx);
 		}
 	};
-
-} // namespace std
-
-namespace aby::win {
-
-	constexpr auto operator|(EMod lhs, EMod rhs) -> EMod {
-		return static_cast<EMod>(static_cast<uint8_t>(lhs) | static_cast<uint8_t>(rhs));
-	}
-
-	constexpr auto operator|=(EMod& lhs, EMod rhs) -> EMod& {
-		lhs = lhs | rhs;
-		return lhs;
-	}
-
-	constexpr auto operator&(EMod lhs, EMod rhs) -> EMod {
-		return static_cast<EMod>(static_cast<uint8_t>(lhs) & static_cast<uint8_t>(rhs));
-	}
-
-	constexpr auto operator&=(EMod& lhs, EMod rhs) -> EMod& {
-		lhs = lhs & rhs;
-		return lhs;
-	}
-
-	constexpr auto operator^(EMod lhs, EMod rhs) -> EMod {
-		return static_cast<EMod>(static_cast<uint8_t>(lhs) ^ static_cast<uint8_t>(rhs));
-	}
-
-	constexpr auto operator^=(EMod& lhs, EMod rhs) -> EMod& {
-		lhs = lhs ^ rhs;
-		return lhs;
-	}
-
-	constexpr auto operator~(EMod value) -> EMod {
-		return static_cast<EMod>(~static_cast<uint8_t>(value));
-	}
-
-	constexpr auto operator!(EMod value) -> bool {
-		return value == EMod::none;
-	}
-
-	constexpr auto operator==(EMod lhs, EMod rhs) -> bool {
-		return static_cast<uint8_t>(lhs) == static_cast<uint8_t>(rhs);
-	}
-
-	constexpr auto operator!=(EMod lhs, EMod rhs) -> bool {
-		return !(lhs == rhs);
-	}
-
-} // namespace aby::win
-
-namespace std {
 
 	template <>
 	struct formatter<aby::win::Event> : formatter<char> {

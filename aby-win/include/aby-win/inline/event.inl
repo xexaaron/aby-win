@@ -2,7 +2,7 @@
 #include <type_traits>
 
 #define __ABY_WIN_EVENT_BODY__(_type, _category, _name) \
-	static auto static_type() -> EEvent {               \
+	static constexpr auto static_type() -> EEvent {     \
 		return ::aby::win::EEvent::_type;               \
 	}                                                   \
 	auto type() const -> EEvent override {              \
@@ -13,31 +13,39 @@
 	}                                                   \
 	auto category() const -> EEventCategory override {  \
 		return ::aby::win::EEventCategory::_category;   \
+	}                                                   \
+	auto window() const -> uint32_t override {          \
+		return m_WindowID;                              \
 	}
 
-#define ABY_WIN_DECLARE_EMPTY_EVENT(_cl_name, _type, _category) \
-	class _cl_name##Event : public ::aby::win::Event {          \
-	public:                                                     \
-		__ABY_WIN_EVENT_BODY__(_type, _category, #_cl_name);    \
+#define ABY_WIN_DECLARE_EMPTY_EVENT(_cl_name, _type, _category)       \
+	class _cl_name##Event : public ::aby::win::Event {                \
+	public:                                                           \
+		_cl_name##Event(uint32_t window_id) : m_WindowID(window_id) { \
+		}                                                             \
+		__ABY_WIN_EVENT_BODY__(_type, _category, #_cl_name);          \
+	private:                                                          \
+		uint32_t m_WindowID;                                          \
 	}
 
-#define ABY_WIN_DECLARE_EVENT(_cl_name, _type, _category, _data_struct)           \
-	class _cl_name##Event : public ::aby::win::Event {                            \
-	public:                                                                       \
-		struct _cl_name##Data _data_struct;                                       \
-		template <typename... Args>                                               \
-		requires(std::is_constructible_v<_cl_name##Data, Args...>)                \
-		_cl_name##Event(Args&&... args) : m_Data{ std::forward<Args>(args)... } { \
-		}                                                                         \
-		__ABY_WIN_EVENT_BODY__(_type, _category, #_cl_name);                      \
-		auto operator->() -> _cl_name##Data* {                                    \
-			return &m_Data;                                                       \
-		}                                                                         \
-		auto operator->() const -> const _cl_name##Data* {                        \
-			return &m_Data;                                                       \
-		}                                                                         \
-	private:                                                                      \
-		_cl_name##Data m_Data;                                                    \
+#define ABY_WIN_DECLARE_EVENT(_cl_name, _type, _category, _data_struct)                                                      \
+	class _cl_name##Event : public ::aby::win::Event {                                                                       \
+	public:                                                                                                                  \
+		struct _cl_name##Data _data_struct;                                                                                  \
+		template <typename... Args>                                                                                          \
+		requires(std::is_constructible_v<_cl_name##Data, Args...>)                                                           \
+		_cl_name##Event(uint32_t window_id, Args&&... args) : m_WindowID(window_id), m_Data{ std::forward<Args>(args)... } { \
+		}                                                                                                                    \
+		__ABY_WIN_EVENT_BODY__(_type, _category, #_cl_name);                                                                 \
+		auto operator->() -> _cl_name##Data* {                                                                               \
+			return &m_Data;                                                                                                  \
+		}                                                                                                                    \
+		auto operator->() const -> const _cl_name##Data* {                                                                   \
+			return &m_Data;                                                                                                  \
+		}                                                                                                                    \
+	private:                                                                                                                 \
+		uint32_t m_WindowID;                                                                                                 \
+		_cl_name##Data m_Data;                                                                                               \
 	}
 
 namespace aby::win::detail {

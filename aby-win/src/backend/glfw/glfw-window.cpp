@@ -43,6 +43,7 @@ namespace aby::win::glfw::detail {
 
 	auto system_dark_theme() -> bool;
 	auto get_listeners(GLFWwindow* window) -> std::span<WindowListener>;
+	auto get_id(GLFWwindow* window) -> uint32_t;
 	auto to_key(int key) -> EKey;
 	auto to_mods(int mods) -> EMod;
 	auto to_mouse_button(int button) -> EMouseButton;
@@ -151,6 +152,8 @@ namespace aby::win::glfw {
 		m_Monitor = detail::create_monitor_based_on_window_pos(m_GLFW);
 
 		glfwShowWindow(m_GLFW);
+
+		m_ID = static_cast<uint32_t>(std::hash<void*>{}(static_cast<void*>(m_GLFW)));
 
 		aby_win_dbg("[glfw] created window: {}", m_Name);
 	}
@@ -416,6 +419,10 @@ namespace aby::win::glfw {
 		return m_Listeners;
 	}
 
+	auto Window::id() const -> uint32_t {
+		return m_ID;
+	}
+
 	auto Window::focused() const -> bool {
 		int32_t value = glfwGetWindowAttrib(m_GLFW, GLFW_FOCUSED);
 		return value == GLFW_TRUE;
@@ -496,47 +503,47 @@ namespace aby::win::glfw::detail {
 		auto* win = static_cast<Window*>(glfwGetWindowUserPointer(window));
 		win->internal_set_monitor(create_monitor_based_on_window_pos(window));
 
-		WindowMovedEvent event(x, y);
+		WindowMovedEvent event(get_id(window), x, y);
 		dispatch(window, event);
 	}
 
 	auto window_size_callback(GLFWwindow* window, int width, int height) -> void {
-		WindowResizedEvent event(static_cast<uint32_t>(width), static_cast<uint32_t>(height));
+		WindowResizedEvent event(get_id(window), static_cast<uint32_t>(width), static_cast<uint32_t>(height));
 		dispatch(window, event);
 	}
 
 	auto window_close_callback(GLFWwindow* window) -> void {
-		WindowClosedEvent event;
+		WindowClosedEvent event(get_id(window));
 		dispatch(window, event);
 	}
 
 	auto window_refresh_callback(GLFWwindow* window) -> void {
-		WindowRefreshedEvent event;
+		WindowRefreshedEvent event(get_id(window));
 		dispatch(window, event);
 	}
 
 	auto window_focus_callback(GLFWwindow* window, int focused) -> void {
-		WindowFocusedEvent event(focused == GLFW_TRUE);
+		WindowFocusedEvent event(get_id(window), focused == GLFW_TRUE);
 		dispatch(window, event);
 	}
 
 	auto window_iconify_callback(GLFWwindow* window, int iconified) -> void {
-		WindowMinimizedEvent event(iconified == GLFW_TRUE);
+		WindowMinimizedEvent event(get_id(window), iconified == GLFW_TRUE);
 		dispatch(window, event);
 	}
 
 	auto window_maximize_callback(GLFWwindow* window, int maximized) -> void {
-		WindowMaximizedEvent event(maximized == GLFW_TRUE);
+		WindowMaximizedEvent event(get_id(window), maximized == GLFW_TRUE);
 		dispatch(window, event);
 	}
 
 	auto framebuffer_size_callback(GLFWwindow* window, int width, int height) -> void {
-		WindowFramebufferResizedEvent event(static_cast<uint32_t>(width), static_cast<uint32_t>(height));
+		WindowFramebufferResizedEvent event(get_id(window), static_cast<uint32_t>(width), static_cast<uint32_t>(height));
 		dispatch(window, event);
 	}
 
 	auto window_content_scale_callback(GLFWwindow* window, float xscale, float yscale) -> void {
-		WindowScaledEvent event(xscale, yscale);
+		WindowScaledEvent event(get_id(window), xscale, yscale);
 		dispatch(window, event);
 	}
 
@@ -546,19 +553,19 @@ namespace aby::win::glfw::detail {
 
 		switch (action) {
 			case GLFW_PRESS: {
-				KeyPressedEvent event(ekey, emod);
+				KeyPressedEvent event(get_id(window), ekey, emod);
 				dispatch(window, event);
 				break;
 			}
 
 			case GLFW_RELEASE: {
-				KeyReleasedEvent event(ekey, emod);
+				KeyReleasedEvent event(get_id(window), ekey, emod);
 				dispatch(window, event);
 				break;
 			}
 
 			case GLFW_REPEAT: {
-				KeyPressedEvent event(ekey, emod);
+				KeyPressedEvent event(get_id(window), ekey, emod);
 				dispatch(window, event);
 				break;
 			}
@@ -571,13 +578,13 @@ namespace aby::win::glfw::detail {
 
 		switch (action) {
 			case GLFW_PRESS: {
-				MousePressedEvent event(ebutton, emod);
+				MousePressedEvent event(get_id(window), ebutton, emod);
 				dispatch(window, event);
 				break;
 			}
 
 			case GLFW_RELEASE: {
-				MouseReleasedEvent event(ebutton, emod);
+				MouseReleasedEvent event(get_id(window), ebutton, emod);
 				dispatch(window, event);
 				break;
 			}
@@ -585,27 +592,27 @@ namespace aby::win::glfw::detail {
 	}
 
 	auto char_callback(GLFWwindow* window, unsigned int codepoint) -> void {
-		KeyTypedEvent event(static_cast<char32_t>(codepoint));
+		KeyTypedEvent event(get_id(window), static_cast<char32_t>(codepoint));
 		dispatch(window, event);
 	}
 
 	auto cursor_enter_callback(GLFWwindow* window, int entered) -> void {
 		if (entered == GLFW_TRUE) {
-			MouseEnteredEvent event;
+			MouseEnteredEvent event(get_id(window));
 			dispatch(window, event);
 		} else {
-			MouseLeftEvent event;
+			MouseLeftEvent event(get_id(window));
 			dispatch(window, event);
 		}
 	}
 
 	auto scroll_callback(GLFWwindow* window, double xoffset, double yoffset) -> void {
-		MouseScrolledEvent event(static_cast<float>(xoffset), static_cast<float>(yoffset));
+		MouseScrolledEvent event(get_id(window), static_cast<float>(xoffset), static_cast<float>(yoffset));
 		dispatch(window, event);
 	}
 
 	auto cursor_pos_callback(GLFWwindow* window, double x, double y) -> void {
-		MouseMovedEvent event(static_cast<float>(x), static_cast<float>(y));
+		MouseMovedEvent event(get_id(window), static_cast<float>(x), static_cast<float>(y));
 
 		dispatch(window, event);
 	}
@@ -614,7 +621,7 @@ namespace aby::win::glfw::detail {
 		for (int i = 0; i < count; ++i) {
 			const char* path = paths[i];
 			auto fpath       = std::filesystem::path(path);
-			FileDroppedEvent event(fpath);
+			FileDroppedEvent event(get_id(window), fpath);
 			dispatch(window, event);
 		}
 	}
@@ -622,6 +629,11 @@ namespace aby::win::glfw::detail {
 	auto get_listeners(GLFWwindow* window) -> std::span<WindowListener> {
 		auto* win = static_cast<Window*>(glfwGetWindowUserPointer(window));
 		return win->listeners();
+	}
+
+	auto get_id(GLFWwindow* window) -> uint32_t {
+		auto* win = static_cast<Window*>(glfwGetWindowUserPointer(window));
+		return win->id();
 	}
 
 	auto to_key(int key) -> EKey {
