@@ -908,7 +908,12 @@ namespace std {
 
 		template <class FmtContext>
 		FmtContext::iterator format(const aby::win::Event& event, FmtContext& ctx) const {
-			return format_to(ctx.out(), "[name: {}, category: {}, type: {}]", event.name(), event.category(), event.type());
+			return format_to(ctx.out(),
+			                 "[name: {}, category: {}, type: {}, window: {}]",
+			                 event.name(),
+			                 event.category(),
+			                 event.type(),
+			                 event.window());
 		}
 	};
 

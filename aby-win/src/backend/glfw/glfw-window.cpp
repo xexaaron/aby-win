@@ -83,6 +83,26 @@ namespace aby::win::glfw::detail {
 
 } // namespace aby::win::glfw::detail
 
+#ifdef __linux__
+
+auto __glfwGetWindowPos(GLFWwindow* window, int* out_x, int* out_y) -> void {
+	auto* win = static_cast<aby::win::glfw::Window*>(glfwGetWindowUserPointer(window));
+	if (glfwGetPlatform() == GLFW_PLATFORM_WAYLAND) {
+		*out_x = 0;
+		*out_y = 0;
+	} else {
+		return glfwGetWindowPos(window, out_x, out_y);
+	}
+}
+
+#	define glfwGetWindowPos(glfw_window, out_x, out_y) __glfwGetWindowPos(glfw_window, out_x, out_y)
+
+#else
+
+#	define glfwGetWindowPos(glfw_window, out_x, out_y) glfwGetWindowPos(glfw_window, out_x, out_y)
+
+#endif
+
 namespace aby::win::glfw {
 
 	Window::Window(const Config& config) :
@@ -91,12 +111,13 @@ namespace aby::win::glfw {
 
 		bChildWindow = config.child;
 
-		if (config.render_doc) {
-			// Wayland doesnt work with vulkan and renderdoc
-			glfwInitHint(GLFW_PLATFORM, GLFW_PLATFORM_X11);
-		}
-
 		if (!bChildWindow) {
+			if (config.render_doc) {
+				// Wayland doesnt work with vulkan and renderdoc
+				glfwInitHint(GLFW_PLATFORM, GLFW_PLATFORM_X11);
+			} else {
+				glfwInitHint(GLFW_PLATFORM, GLFW_PLATFORM_WAYLAND);
+			}
 			if (!glfwInit()) {
 				return;
 			}
