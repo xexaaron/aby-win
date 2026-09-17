@@ -10,7 +10,7 @@ struct SDL_Cursor;
 
 namespace aby::win::sdl {
 
-	class Window : public win::Window {
+	class ABY_WIN_API Window : public win::Window {
 	public:
 		Window(const Config& config);
 		~Window();

@@ -10,7 +10,7 @@ struct GLFWcursor;
 
 namespace aby::win::glfw {
 
-	class Window : public win::Window {
+	class ABY_WIN_API Window : public win::Window {
 	public:
 		Window(const Config& config);
 		~Window();

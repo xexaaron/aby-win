@@ -1,4 +1,5 @@
 #pragma once
+#include "common.hpp"
 #include "inline/event.inl"
 
 #include <cstddef>
@@ -209,7 +210,7 @@ namespace aby::win {
 	 * 		  Event data is accessed using the pointer operator on a reference to an event of derived type.
 	 * 		  Use the EventDispatcher class to access this data easily.
 	 */
-	class Event {
+	class ABY_WIN_API Event {
 	public:
 		/// @brief Get the compile time event type
 		static constexpr auto static_type() -> EEvent {
@@ -243,7 +244,7 @@ namespace aby::win {
 	/**
 	 * @brief Event dispatcher to correlate free/lambda/member functions with specific events
 	 */
-	class EventDispatcher {
+	class ABY_WIN_API EventDispatcher {
 	public:
 		explicit EventDispatcher(Event& event) :
 		    m_Event(event) {

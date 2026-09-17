@@ -3,6 +3,16 @@
 #include <memory>
 #include <string>
 
+#ifdef _WIN32
+#	if ABY_BUILD_DLL == 1
+#		define ABY_WIN_API __declspec(dllexport)
+#	else
+#		define ABY_WIN_API __declspec(dllimport)
+#	endif
+#else
+#	define ABY_WIN_API __attribute__((visibility("default")))
+#endif
+
 #ifndef NDEBUG
 #	define aby_win_dbg(msg, ...) ::aby::win::ILogger::get()->log(::aby::win::ELogLevel::debug, std::format(msg __VA_OPT__(, ) __VA_ARGS__))
 #else
@@ -77,7 +87,7 @@ namespace aby::win {
 		fatal,
 	};
 
-	class ILogger {
+	class ABY_WIN_API ILogger {
 	public:
 		virtual ~ILogger() = default;
 
@@ -94,7 +104,7 @@ namespace aby::win {
 		static std::unique_ptr<ILogger> s_Logger;
 	};
 
-	class DefaultLogger : public ILogger {
+	class ABY_WIN_API DefaultLogger : public ILogger {
 	public:
 		auto log(ELogLevel level, const std::string& msg) -> void override;
 	};

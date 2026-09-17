@@ -19,7 +19,7 @@
 	}
 
 #define ABY_WIN_DECLARE_EMPTY_EVENT(_cl_name, _type, _category)       \
-	class _cl_name##Event : public ::aby::win::Event {                \
+	class ABY_WIN_API _cl_name##Event : public ::aby::win::Event {    \
 	public:                                                           \
 		_cl_name##Event(uint32_t window_id) : m_WindowID(window_id) { \
 		}                                                             \
@@ -29,7 +29,7 @@
 	}
 
 #define ABY_WIN_DECLARE_EVENT(_cl_name, _type, _category, _data_struct)                                                      \
-	class _cl_name##Event : public ::aby::win::Event {                                                                       \
+	class ABY_WIN_API _cl_name##Event : public ::aby::win::Event {                                                           \
 	public:                                                                                                                  \
 		struct _cl_name##Data _data_struct;                                                                                  \
 		template <typename... Args>                                                                                          \

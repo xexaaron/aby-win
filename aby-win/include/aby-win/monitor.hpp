@@ -1,4 +1,6 @@
 #pragma once
+#include "common.hpp"
+
 #include <cstdint>
 #include <span>
 #include <string_view>
@@ -26,7 +28,7 @@ namespace aby::win {
 		int32_t refresh_rate;
 	};
 
-	class Monitor {
+	class ABY_WIN_API Monitor {
 	public:
 		Monitor(Position pos, const WorkArea& wa, Size physical_size, Scale scale, std::string_view name, std::vector<VideoMode> video_modes, size_t current_video_mode);
 

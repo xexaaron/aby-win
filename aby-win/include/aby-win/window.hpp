@@ -78,7 +78,7 @@ namespace aby::win {
 	 */
 	using WindowListener = std::function<bool(Event&)>;
 
-	struct Config {
+	struct ABY_WIN_API Config {
 		/// @brief Set the initial window title
 		auto set_name(std::string_view name) -> Config&;
 		/// @brief Set the initial window width
@@ -124,7 +124,7 @@ namespace aby::win {
 		ERenderBackend render_backend = ERenderBackend::none; // the rendering backend
 	};
 
-	class Window {
+	class ABY_WIN_API Window {
 	protected:
 		Window(const Config& config);
 	public:
