@@ -2,9 +2,11 @@
 
 #include "window.hpp"
 
+#include <GLFW/glfw3.h>
 #include <span>
 
 struct GLFWwindow;
+struct GLFWcursor;
 
 namespace aby::win::glfw {
 
@@ -21,9 +23,12 @@ namespace aby::win::glfw {
 		auto set_fullscreen(bool fullscreen) -> void override;
 		auto set_cursor_mode(ECursorMode mode) -> void override;
 		auto set_cursor_pos(float x, float y) -> void override;
+		auto set_cursor(ECursor cursor) -> void override;
 		auto set_theme(ETheme theme) -> void override;
 		auto set_icon(const Icon& icon) -> void override;
 		auto set_hit_test_config(const HitTestConfig& cfg) -> void override;
+		auto set_clipboard(std::string_view text) -> void override;
+
 		auto add_listener(WindowListener&& listener) -> void override;
 
 		auto focus() -> void override;
@@ -45,6 +50,7 @@ namespace aby::win::glfw {
 		auto fb_size() const -> std::pair<uint32_t, uint32_t> override;
 		auto monitor() const -> const Monitor* override;
 		auto id() const -> uint32_t override;
+		auto clipboard() const -> std::string_view override;
 		auto listeners() -> std::span<WindowListener>;
 
 		auto focused() const -> bool override;
@@ -70,8 +76,19 @@ namespace aby::win::glfw {
 		uint32_t m_WindowedHeight          = 0;
 		HitTestConfig m_HitTestCfg         = {};
 		GLFWwindow* m_GLFW                 = nullptr;
+		GLFWcursor* m_ArrowCursor          = nullptr;
+		GLFWcursor* m_IBeamCursor          = nullptr;
+		GLFWcursor* m_CrosshairCursor      = nullptr;
+		GLFWcursor* m_HandCursor           = nullptr;
+		GLFWcursor* m_HResizeCursor        = nullptr;
+		GLFWcursor* m_VResizeCursor        = nullptr;
+		GLFWcursor* m_ResizeNWSECursor     = nullptr;
+		GLFWcursor* m_ResizeNESWCursor     = nullptr;
+		GLFWcursor* m_NotAllowedCursor     = nullptr;
+		GLFWcursor* m_MoveCursor           = nullptr;
 		std::unique_ptr<Monitor> m_Monitor = nullptr;
 		std::vector<WindowListener> m_Listeners;
+
 #ifdef _WIN32
 		void* m_OldWndProc;
 #elif defined(__linux__)

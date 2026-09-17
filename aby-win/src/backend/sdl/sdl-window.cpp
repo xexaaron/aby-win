@@ -1,9 +1,12 @@
 #include "backend/sdl/sdl-window.hpp"
 
+#include "SDL3/SDL_clipboard.h"
 #include "SDL3/SDL_events.h"
 #include "SDL3/SDL_hints.h"
 #include "SDL3/SDL_init.h"
+#include "SDL3/SDL_mouse.h"
 #include "SDL3/SDL_mutex.h"
+#include "SDL3/SDL_oldnames.h"
 #include "SDL3/SDL_video.h"
 #include "common.hpp"
 
@@ -87,6 +90,17 @@ namespace aby::win::sdl {
 				break;
 		}
 
+		m_ArrowCursor      = SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_DEFAULT);
+		m_IBeamCursor      = SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_TEXT);
+		m_CrosshairCursor  = SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_CROSSHAIR);
+		m_HandCursor       = SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_POINTER);
+		m_HResizeCursor    = SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_EW_RESIZE);
+		m_VResizeCursor    = SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_NS_RESIZE);
+		m_NWSEResizeCursor = SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_NWSE_RESIZE);
+		m_NESWResizeCursor = SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_NESW_RESIZE);
+		m_MoveCursor       = SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_MOVE);
+		m_NotAllowedCursor = SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_NOT_ALLOWED);
+
 		m_SDL = SDL_CreateWindow(m_Name.c_str(), static_cast<int>(config.width), static_cast<int>(config.height), flags);
 
 		if (!m_SDL) {
@@ -158,6 +172,41 @@ namespace aby::win::sdl {
 
 	auto Window::set_cursor_pos(float x, float y) -> void {
 		SDL_WarpMouseInWindow(m_SDL, x, y);
+	}
+
+	auto Window::set_cursor(ECursor cursor) -> void {
+		switch (cursor) {
+			case ECursor::arrow:
+				SDL_SetCursor(m_ArrowCursor);
+				break;
+			case ECursor::ibeam:
+				SDL_SetCursor(m_IBeamCursor);
+				break;
+			case ECursor::crosshair:
+				SDL_SetCursor(m_CrosshairCursor);
+				break;
+			case ECursor::hand:
+				SDL_SetCursor(m_HandCursor);
+				break;
+			case ECursor::hresize:
+				SDL_SetCursor(m_HResizeCursor);
+				break;
+			case ECursor::vresize:
+				SDL_SetCursor(m_VResizeCursor);
+				break;
+			case ECursor::nwse_resize:
+				SDL_SetCursor(m_NWSEResizeCursor);
+				break;
+			case ECursor::nesw_resize:
+				SDL_SetCursor(m_NESWResizeCursor);
+				break;
+			case ECursor::move:
+				SDL_SetCursor(m_MoveCursor);
+				break;
+			case ECursor::not_allowed:
+				SDL_SetCursor(m_NotAllowedCursor);
+				break;
+		}
 	}
 
 	auto Window::set_theme(ETheme theme) -> void {
@@ -234,6 +283,10 @@ namespace aby::win::sdl {
 		}, &m_HitTestConfig);
 
 		bHitFnSet = true;
+	}
+
+	auto Window::set_clipboard(std::string_view text) -> void {
+		SDL_SetClipboardText(text.data());
 	}
 
 	auto Window::add_listener(WindowListener&& listener) -> void {
@@ -730,6 +783,10 @@ namespace aby::win::sdl {
 
 	auto Window::id() const -> uint32_t {
 		return m_ID;
+	}
+
+	auto Window::clipboard() const -> std::string_view {
+		return SDL_GetClipboardText();
 	}
 
 	auto Window::focused() const -> bool {

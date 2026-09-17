@@ -26,6 +26,19 @@ namespace aby::win {
 		disabled
 	};
 
+	enum class ECursor {
+		arrow,       // ↖    Default pointer
+		ibeam,       // I    Text selection/editing
+		crosshair,   // +    Precise selection
+		hand,        // ☝   Clickable element
+		hresize,     // ↔    Horizontal resize
+		vresize,     // ↕    Vertical resize
+		nwse_resize, // ⤡    Diagonal resize (NW ↔ SE)
+		nesw_resize, // ⤢    Diagonal resize (NE ↔ SW)
+		move,        // ✥    Move/drag
+		not_allowed, // ⊘   Operation not permitted
+	};
+
 	enum class ETheme {
 		light,
 		dark,
@@ -33,9 +46,16 @@ namespace aby::win {
 	};
 
 	struct NativeWindow {
-		void* backend_window;  // GLFWwindow*, SDL_Window*
-		void* platform_window; // HWND, NSWindow, wl_surface*/XID
-		EWindow backend;       // glfw, sdl
+		void* backend_window; // GLFWwindow*, SDL_Window*
+		/**
+		* @brief The native platform window.
+		* @param win32 HWND
+		* @param macos NSWindow*
+		* @param linux[wayland] std::pair<wl_display*, wl_surface*>*
+		* @param linux[x11] std::pair<Display*, Window>*
+		*/
+		void* platform_window;
+		EWindow backend; // glfw, sdl
 	};
 
 	/// @brief Loader independent icon structure.
@@ -110,125 +130,133 @@ namespace aby::win {
 	public:
 		/**
 		 * @brief Create a window
-		 * @param config The window configuration
+		 * @param[in] config The window configuration
 		 * @return std::unique_ptr<Window>
 		 */
 		static auto create(const Config& config) -> std::unique_ptr<Window>;
 		/**
 		 * @brief Create a raw window ptr
-		 * @param config The window configuration
+		 * @param[in] config The window configuration
 		 * @return Window*
 		 */
 		static auto create_raw(const Config& config) -> Window*;
 		/**
 		 * @brief Create a unique ptr window
-		 * @param config The window configuration
+		 * @param[in] config The window configuration
 		 * @return std::unique_ptr<Window>
 		 */
 		static auto create_unique(const Config& config) -> std::unique_ptr<Window>;
 		/**
 		 * @brief Create a shared ptr window
-		 * @param config The window configuraiton
+		 * @param[in] config The window configuraiton
 		 * @return std::shared_ptr<Window>
 		 */
 		static auto create_shared(const Config& config) -> std::shared_ptr<Window>;
-		virtual ~Window() = default;
-
+		virtual ~Window()                                                  = default;
 		/**
 		 * @brief Set the window title
-		 * @param name The new title
+		 * @param[in] name The new title
 		 */
 		virtual auto set_name(std::string_view name) -> void               = 0;
 		/**
 		 * @brief Set the window width
-		 * @param w The new width
+		 * @param[in] w The new width
 		 */
 		virtual auto set_width(uint32_t w) -> void                         = 0;
 		/**
 		 * @brief Set the window height
-		 * @param h The new height
+		 * @param[in] h The new height
 		 */
 		virtual auto set_height(uint32_t h) -> void                        = 0;
 		/**
 		 * @brief Set the window size
-		 * @param w The new width
-		 * @param h The new height
+		 * @param[in] w The new width
+		 * @param[in] h The new height
 		 */
 		virtual auto set_size(uint32_t w, uint32_t h) -> void              = 0;
 		/**
 		 * @brief Set the window position
-		 * @param x The new x position
-		 * @param y The new y position
+		 * @param[in] x The new x position
+		 * @param[in] y The new y position
 		 */
 		virtual auto set_position(int32_t x, int32_t y) -> void            = 0;
 		/**
 		 * @brief Set the fullscreen mode
-		 * @param fullscreen [true|false]
+		 * @param[in] fullscreen [true|false]
 		 */
 		virtual auto set_fullscreen(bool fullscreen) -> void               = 0;
 		/**
 		 * @brief Set the cursor mode
-		 * @param mode [normal, hidden, disabled]
+		 * @param[in] mode [normal, hidden, disabled]
 		 */
 		virtual auto set_cursor_mode(ECursorMode mode) -> void             = 0;
 		/**
 		 * @brief Set the cursor position
-		 * @param x The new x position
-		 * @param y The new y position
+		 * @param[in] x The new x position
+		 * @param[in] y The new y position
 		 */
 		virtual auto set_cursor_pos(float x, float y) -> void              = 0;
 		/**
+		 * @brief Set the cursor shape
+		 * @param[in] cursor the cursor shape
+		 */
+		virtual auto set_cursor(ECursor cursor) -> void                    = 0;
+		/**
 		 * @brief Set the window decoration theme
-		 * @param theme [dark|light|automatic]
+		 * @param[in] theme [dark|light|automatic]
 		 */
 		virtual auto set_theme(ETheme theme) -> void                       = 0;
 		/**
 		 * @brief Set the window icon
-		 * @param icon a loaded image 
+		 * @param[in] icon a loaded image 
 		 * @note The pixel data is expected to be in 32-bit RGBA format, 8 bits per channel.
 		 */
 		virtual auto set_icon(const Icon& icon) -> void                    = 0;
 		/**
 		 * @brief Set the hit test configuration for undecorated windows
-		 * @param cfg the configuration
+		 * @param[in] cfg the configuration
 		 */
 		virtual auto set_hit_test_config(const HitTestConfig& cfg) -> void = 0;
 		/**
+		* @brief Set the system clipboard
+		* @param[in] text the text to set the clipboard to
+		*/
+		virtual auto set_clipboard(std::string_view text) -> void          = 0;
+		/**
 		 * @brief Add an event listener
-		 * @param listener The new listener: [](Event&) -> bool
+		 * @param[in] listener The new listener: [](Event&) -> bool
 		 */
 		virtual auto add_listener(WindowListener&& listener) -> void       = 0;
-
 		/**
 		 * @brief Set the window as the top window and then focus it for input
 		 */
-		virtual auto focus() -> void    = 0;
+		virtual auto focus() -> void                                       = 0;
 		/**
 		 * @brief Minimize the window
 		 */
-		virtual auto minimize() -> void = 0;
+		virtual auto minimize() -> void                                    = 0;
 		/**
 		 * @brief Maximize the window
 		 */
-		virtual auto maximize() -> void = 0;
+		virtual auto maximize() -> void                                    = 0;
 		/**
 		 * @brief Show the window if hidden
 		 */
-		virtual auto show() -> void     = 0;
+		virtual auto show() -> void                                        = 0;
 		/**
 		 * @brief Hide the window if shown
 		 */
-		virtual auto hide() -> void     = 0;
+		virtual auto hide() -> void                                        = 0;
 		/**
 		 * @brief Tell the window it should close on the next frame
 		 */
-		virtual auto close() -> void    = 0;
+		virtual auto close() -> void                                       = 0;
 		/**
 		 * @brief Poll all pending events for all windows (blocking)
 		 * @warning This should ONLY be called once per frame by the MAIN window.
 		 * 			Each window will process events via their listeners.
 		 */
-		virtual auto poll() -> void     = 0;
+		virtual auto poll() -> void                                        = 0;
 		/**
 		 * @brief Get the window title
 		 */
@@ -281,6 +309,10 @@ namespace aby::win {
 		* @brief Get the window ID
 		*/
 		virtual auto id() const -> uint32_t                           = 0;
+		/**
+		* @brief Get the system clipboard text
+		*/
+		virtual auto clipboard() const -> std::string_view            = 0;
 		/**
 		 * @brief Check if the window is focused
 		 */

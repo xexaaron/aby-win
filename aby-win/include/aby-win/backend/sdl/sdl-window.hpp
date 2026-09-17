@@ -3,8 +3,10 @@
 
 #include <span>
 #include <unordered_map>
+
 struct SDL_Window;
 struct SDL_Surface;
+struct SDL_Cursor;
 
 namespace aby::win::sdl {
 
@@ -21,9 +23,12 @@ namespace aby::win::sdl {
 		auto set_fullscreen(bool fullscreen) -> void override;
 		auto set_cursor_mode(ECursorMode mode) -> void override;
 		auto set_cursor_pos(float x, float y) -> void override;
+		auto set_cursor(ECursor cursor) -> void override;
 		auto set_theme(ETheme theme) -> void override;
 		auto set_icon(const Icon& icon) -> void override;
 		auto set_hit_test_config(const HitTestConfig& cfg) -> void override;
+		auto set_clipboard(std::string_view text) -> void override;
+
 		auto add_listener(WindowListener&& listener) -> void override;
 
 		auto focus() -> void override;
@@ -45,6 +50,7 @@ namespace aby::win::sdl {
 		auto fb_size() const -> std::pair<uint32_t, uint32_t> override;
 		auto monitor() const -> const Monitor* override;
 		auto id() const -> uint32_t override;
+		auto clipboard() const -> std::string_view override;
 
 		auto focused() const -> bool override;
 		auto minimized() const -> bool override;
@@ -78,6 +84,16 @@ namespace aby::win::sdl {
 		bool bChildWindow                  = false;
 		SDL_Window* m_SDL                  = nullptr;
 		SDL_Surface* m_Icon                = nullptr;
+		SDL_Cursor* m_ArrowCursor          = nullptr;
+		SDL_Cursor* m_IBeamCursor          = nullptr;
+		SDL_Cursor* m_CrosshairCursor      = nullptr;
+		SDL_Cursor* m_HandCursor           = nullptr;
+		SDL_Cursor* m_HResizeCursor        = nullptr;
+		SDL_Cursor* m_VResizeCursor        = nullptr;
+		SDL_Cursor* m_NWSEResizeCursor     = nullptr;
+		SDL_Cursor* m_NESWResizeCursor     = nullptr;
+		SDL_Cursor* m_MoveCursor           = nullptr;
+		SDL_Cursor* m_NotAllowedCursor     = nullptr;
 		std::unique_ptr<Monitor> m_Monitor = nullptr;
 		HitTestConfig m_HitTestConfig;
 #ifdef __linux__

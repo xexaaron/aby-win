@@ -166,6 +166,17 @@ namespace aby::win::glfw {
 		glfwSetScrollCallback(m_GLFW, &detail::scroll_callback);
 		glfwSetDropCallback(m_GLFW, &detail::drop_callback);
 
+		m_ArrowCursor      = glfwCreateStandardCursor(GLFW_ARROW_CURSOR);
+		m_IBeamCursor      = glfwCreateStandardCursor(GLFW_IBEAM_CURSOR);
+		m_CrosshairCursor  = glfwCreateStandardCursor(GLFW_CROSSHAIR_CURSOR);
+		m_HandCursor       = glfwCreateStandardCursor(GLFW_HAND_CURSOR);
+		m_HResizeCursor    = glfwCreateStandardCursor(GLFW_HRESIZE_CURSOR);
+		m_VResizeCursor    = glfwCreateStandardCursor(GLFW_VRESIZE_CURSOR);
+		m_ResizeNWSECursor = glfwCreateStandardCursor(GLFW_RESIZE_NWSE_CURSOR);
+		m_ResizeNESWCursor = glfwCreateStandardCursor(GLFW_RESIZE_NESW_CURSOR);
+		m_MoveCursor       = glfwCreateStandardCursor(GLFW_RESIZE_ALL_CURSOR);
+		m_NotAllowedCursor = glfwCreateStandardCursor(GLFW_NOT_ALLOWED_CURSOR);
+
 		if (bDecorated) {
 			set_theme(config.theme);
 		}
@@ -264,6 +275,41 @@ namespace aby::win::glfw {
 		glfwSetCursorPos(m_GLFW, x, y);
 	}
 
+	auto Window::set_cursor(ECursor cursor) -> void {
+		switch (cursor) {
+			case ECursor::arrow:
+				glfwSetCursor(m_GLFW, m_ArrowCursor);
+				break;
+			case ECursor::ibeam:
+				glfwSetCursor(m_GLFW, m_IBeamCursor);
+				break;
+			case ECursor::crosshair:
+				glfwSetCursor(m_GLFW, m_CrosshairCursor);
+				break;
+			case ECursor::hand:
+				glfwSetCursor(m_GLFW, m_HandCursor);
+				break;
+			case ECursor::hresize:
+				glfwSetCursor(m_GLFW, m_HResizeCursor);
+				break;
+			case ECursor::vresize:
+				glfwSetCursor(m_GLFW, m_VResizeCursor);
+				break;
+			case ECursor::nwse_resize:
+				glfwSetCursor(m_GLFW, m_ResizeNWSECursor);
+				break;
+			case ECursor::nesw_resize:
+				glfwSetCursor(m_GLFW, m_ResizeNESWCursor);
+				break;
+			case ECursor::move:
+				glfwSetCursor(m_GLFW, m_MoveCursor);
+				break;
+			case ECursor::not_allowed:
+				glfwSetCursor(m_GLFW, m_NotAllowedCursor);
+				break;
+		}
+	}
+
 	auto Window::set_theme(ETheme theme) -> void {
 		m_Theme = theme;
 #ifdef _WIN32
@@ -322,6 +368,10 @@ namespace aby::win::glfw {
 		aby_win_err("[glfw] custom hit test configuration function not supported yet.");
 		return;
 #endif
+	}
+
+	auto Window::set_clipboard(std::string_view text) -> void {
+		glfwSetClipboardString(m_GLFW, text.data());
 	}
 
 	auto Window::add_listener(WindowListener&& listener) -> void {
@@ -442,6 +492,10 @@ namespace aby::win::glfw {
 
 	auto Window::id() const -> uint32_t {
 		return m_ID;
+	}
+
+	auto Window::clipboard() const -> std::string_view {
+		return glfwGetClipboardString(m_GLFW);
 	}
 
 	auto Window::focused() const -> bool {
