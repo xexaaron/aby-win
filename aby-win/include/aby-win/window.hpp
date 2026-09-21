@@ -223,6 +223,26 @@ namespace aby::win {
 		*/
 		virtual auto set_clipboard(std::string_view text) -> void          = 0;
 		/**
+		* @brief Set the window resizability flag
+		* @param[in] value [true|false]
+		*/
+		virtual auto set_resizable(bool value) -> void                     = 0;
+		/**
+		* @brief Set the window visbility flag
+		* @param[in] value [true|false]
+		*/
+		virtual auto set_visible(bool value) -> void                       = 0;
+		/**
+		* @brief Set the window decorated flag
+		* @param[in] value [true|false]
+		*/
+		virtual auto set_decorated(bool value) -> void                     = 0;
+		/**
+		* @brief Set the window focused flag
+		* @param[in] value [true|false]
+		*/
+		virtual auto set_focused(bool value) -> void                       = 0;
+		/**
 		 * @brief Add an event listener
 		 * @param[in] listener The new listener: [](Event&) -> bool
 		 */

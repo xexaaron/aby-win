@@ -13,9 +13,16 @@ target_include_directories(${PROJECT_NAME} PRIVATE
     include
 )
 
-target_link_libraries(${PROJECT_NAME} PRIVATE aby-win::aby-win)
+target_link_libraries(${PROJECT_NAME} 
+PRIVATE
+    aby-win::aby-win
+)
 
 target_compile_options(${PROJECT_NAME} PRIVATE
     $<$<CXX_COMPILER_ID:MSVC>:/WX /Zc:preprocessor>
     $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-Werror>
+)
+
+set_target_properties(${PROJECT_NAME} PROPERTIES
+    MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>"
 )

@@ -51,3 +51,7 @@ target_compile_definitions(${PROJECT_NAME} PUBLIC
     ABY_WIN_ENABLE_LOG_WARN=$<BOOL:${ABY_WIN_ENABLE_LOG_WARN}> 
     ABY_WIN_ENABLE_ASSERT=$<BOOL:${ABY_WIN_ENABLE_ASSERT}>
 )
+
+set_target_properties(${PROJECT_NAME} PROPERTIES
+    MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>"
+)

@@ -289,6 +289,26 @@ namespace aby::win::sdl {
 		SDL_SetClipboardText(text.data());
 	}
 
+	auto Window::set_resizable(bool value) -> void {
+		SDL_SetWindowResizable(m_SDL, value);
+	}
+
+	auto Window::set_visible(bool value) -> void {
+		if (value) {
+			SDL_ShowWindow(m_SDL);
+		} else {
+			SDL_HideWindow(m_SDL);
+		}
+	}
+
+	auto Window::set_decorated(bool value) -> void {
+		SDL_SetWindowBordered(m_SDL, value);
+	}
+
+	auto Window::set_focused(bool value) -> void {
+		SDL_SetWindowFocusable(m_SDL, value);
+	}
+
 	auto Window::add_listener(WindowListener&& listener) -> void {
 		s_Listeners.emplace(m_ID, std::move(listener));
 	}

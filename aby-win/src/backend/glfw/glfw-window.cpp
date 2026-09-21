@@ -374,6 +374,28 @@ namespace aby::win::glfw {
 		glfwSetClipboardString(m_GLFW, text.data());
 	}
 
+	auto Window::set_resizable(bool value) -> void {
+		glfwSetWindowAttrib(m_GLFW, GLFW_RESIZABLE, value ? GLFW_TRUE : GLFW_FALSE);
+	}
+
+	auto Window::set_visible(bool value) -> void {
+		if (value) {
+			glfwShowWindow(m_GLFW);
+		} else {
+			glfwHideWindow(m_GLFW);
+		}
+	}
+
+	auto Window::set_decorated(bool value) -> void {
+		glfwSetWindowAttrib(m_GLFW, GLFW_DECORATED, value ? GLFW_TRUE : GLFW_FALSE);
+	}
+
+	auto Window::set_focused(bool value) -> void {
+		if (value) {
+			glfwFocusWindow(m_GLFW);
+		}
+	}
+
 	auto Window::add_listener(WindowListener&& listener) -> void {
 		m_Listeners.push_back(std::move(listener));
 	}

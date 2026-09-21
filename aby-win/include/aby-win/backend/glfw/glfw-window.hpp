@@ -28,6 +28,10 @@ namespace aby::win::glfw {
 		auto set_icon(const Icon& icon) -> void override;
 		auto set_hit_test_config(const HitTestConfig& cfg) -> void override;
 		auto set_clipboard(std::string_view text) -> void override;
+		auto set_resizable(bool value) -> void override;
+		auto set_visible(bool value) -> void override;
+		auto set_decorated(bool value) -> void override;
+		auto set_focused(bool value) -> void override;
 
 		auto add_listener(WindowListener&& listener) -> void override;
 
