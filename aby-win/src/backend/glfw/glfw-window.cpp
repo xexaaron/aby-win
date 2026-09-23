@@ -1,25 +1,28 @@
-#include "backend/glfw/glfw-window.hpp"
+#if ABY_WIN_ENABLE_GLFW
 
-#include "common.hpp"
+#	include "backend/glfw/glfw-window.hpp"
 
-#ifdef _WIN32
-#	define GLFW_EXPOSE_NATIVE_WIN32
-#	include <dwmapi.h>   // DwmSetWindowAttribute
-#	include <windowsx.h> // GET_X_LPARAM, GET_Y_LPARAM
-#	pragma comment(lib, "dwmapi.lib")
-#elif defined(__APPLE__)
-#	define GLFW_EXPOSE_NATIVE_COCOA
-#elif defined(__linux__)
-#	define GLFW_EXPOSE_NATIVE_WAYLAND
-#	define GLFW_EXPOSE_NATIVE_X11
-#endif
+#	include "common.hpp"
+#	include "window.hpp"
 
-#ifndef DWMWA_USE_IMMERSIVE_DARK_MODE
-#	define DWMWA_USE_IMMERSIVE_DARK_MODE 20
-#endif
+#	ifdef _WIN32
+#		define GLFW_EXPOSE_NATIVE_WIN32
+#		include <dwmapi.h>   // DwmSetWindowAttribute
+#		include <windowsx.h> // GET_X_LPARAM, GET_Y_LPARAM
+#		pragma comment(lib, "dwmapi.lib")
+#	elif defined(__APPLE__)
+#		define GLFW_EXPOSE_NATIVE_COCOA
+#	elif defined(__linux__)
+#		define GLFW_EXPOSE_NATIVE_WAYLAND
+#		define GLFW_EXPOSE_NATIVE_X11
+#	endif
 
-#include <GLFW/glfw3.h>
-#include <GLFW/glfw3native.h>
+#	ifndef DWMWA_USE_IMMERSIVE_DARK_MODE
+#		define DWMWA_USE_IMMERSIVE_DARK_MODE 20
+#	endif
+
+#	include <GLFW/glfw3.h>
+#	include <GLFW/glfw3native.h>
 
 namespace aby::win::glfw::detail {
 
@@ -77,13 +80,13 @@ namespace aby::win::glfw::detail {
 		}
 	}
 
-#ifdef _WIN32
+#	ifdef _WIN32
 	auto window_proc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam) -> LRESULT;
-#endif
+#	endif
 
 } // namespace aby::win::glfw::detail
 
-#ifdef __linux__
+#	ifdef __linux__
 
 auto __glfwGetWindowPos(GLFWwindow* window, int* out_x, int* out_y) -> void {
 	auto* win = static_cast<aby::win::glfw::Window*>(glfwGetWindowUserPointer(window));
@@ -95,13 +98,13 @@ auto __glfwGetWindowPos(GLFWwindow* window, int* out_x, int* out_y) -> void {
 	}
 }
 
-#	define glfwGetWindowPos(glfw_window, out_x, out_y) __glfwGetWindowPos(glfw_window, out_x, out_y)
+#		define glfwGetWindowPos(glfw_window, out_x, out_y) __glfwGetWindowPos(glfw_window, out_x, out_y)
 
-#else
+#	else
 
-#	define glfwGetWindowPos(glfw_window, out_x, out_y) glfwGetWindowPos(glfw_window, out_x, out_y)
+#		define glfwGetWindowPos(glfw_window, out_x, out_y) glfwGetWindowPos(glfw_window, out_x, out_y)
 
-#endif
+#	endif
 
 namespace aby::win::glfw {
 
@@ -312,7 +315,7 @@ namespace aby::win::glfw {
 
 	auto Window::set_theme(ETheme theme) -> void {
 		m_Theme = theme;
-#ifdef _WIN32
+#	ifdef _WIN32
 		BOOL dark = FALSE;
 		switch (theme) {
 			case ETheme::dark:
@@ -331,9 +334,9 @@ namespace aby::win::glfw {
 		    DWMWA_USE_IMMERSIVE_DARK_MODE,
 		    &dark,
 		    sizeof(dark));
-#else
+#	else
 		aby_win_wrn("theme setting is not implemented on platforms other than win32 currently");
-#endif
+#	endif
 	}
 
 	auto Window::set_icon(const Icon& icon) -> void {
@@ -355,7 +358,7 @@ namespace aby::win::glfw {
 		if (bHitFnSet) {
 			return;
 		}
-#ifdef _WIN32
+#	ifdef _WIN32
 		auto hwnd    = (HWND)native().platform_window;
 		m_OldWndProc = reinterpret_cast<WNDPROC>(
 		    SetWindowLongPtr(
@@ -364,10 +367,10 @@ namespace aby::win::glfw {
 		        reinterpret_cast<LONG_PTR>(&detail::window_proc)));
 
 		SetPropA(hwnd, "aby-win-window", this);
-#else
+#	else
 		aby_win_err("[glfw] custom hit test configuration function not supported yet.");
 		return;
-#endif
+#	endif
 	}
 
 	auto Window::set_clipboard(std::string_view text) -> void {
@@ -467,21 +470,25 @@ namespace aby::win::glfw {
 	auto Window::native() const -> NativeWindow {
 		NativeWindow out;
 		out.backend_window = m_GLFW;
-#ifdef _WIN32
+#	ifdef _WIN32
 		out.platform_window = glfwGetWin32Window(m_GLFW);
-#elif defined(__APPLE__)
+		out.platform        = EPlatform::winapi;
+#	elif defined(__APPLE__)
 		out.platform_window = glfwGetCocoaWindow(m_GLFW);
-#elif defined(__linux__)
+		out.platform        = EPlatform::cocoa;
+#	elif defined(__linux__)
 		if (glfwGetPlatform() == GLFW_PLATFORM_WAYLAND) {
 			m_NativeHandles.first  = glfwGetWaylandDisplay();
 			m_NativeHandles.second = glfwGetWaylandWindow(m_GLFW);
 			out.platform_window    = &m_NativeHandles;
+			out.platform           = EPlatform::wayland;
 		} else if (glfwGetPlatform() == GLFW_PLATFORM_X11) {
 			m_NativeHandles.first  = glfwGetX11Display();
 			m_NativeHandles.second = reinterpret_cast<void*>(glfwGetX11Window(m_GLFW));
 			out.platform_window    = &m_NativeHandles;
+			out.platform           = EPlatform::x11;
 		}
-#endif
+#	endif
 		out.backend = m_WindowBackend;
 		return out;
 	}
@@ -557,12 +564,12 @@ namespace aby::win::glfw {
 		return m_HitTestCfg;
 	}
 
-#ifdef _WIN32
+#	ifdef _WIN32
 	auto Window::internal_get_old_wnd_proc() -> void* {
 		return m_OldWndProc;
 	}
 
-#endif
+#	endif
 
 } // namespace aby::win::glfw
 
@@ -573,7 +580,7 @@ namespace aby::win::glfw::detail {
 	}
 
 	auto system_dark_theme() -> bool {
-#ifdef _WIN32
+#	ifdef _WIN32
 		DWORD value         = 1;
 		DWORD size          = sizeof(value);
 		constexpr auto key  = L"Software\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize";
@@ -592,7 +599,7 @@ namespace aby::win::glfw::detail {
 		}
 
 		return value == 0;
-#endif
+#	endif
 		return false;
 	}
 
@@ -1186,7 +1193,7 @@ namespace aby::win::glfw::detail {
 		return success;
 	}
 
-#ifdef _WIN32
+#	ifdef _WIN32
 	auto window_proc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam) -> LRESULT {
 		auto* window = static_cast<Window*>(
 		    GetPropA(hwnd, "aby-win-window"));
@@ -1250,6 +1257,8 @@ namespace aby::win::glfw::detail {
 		    wparam,
 		    lparam);
 	}
-#endif
+#	endif
 
 } // namespace aby::win::glfw::detail
+
+#endif

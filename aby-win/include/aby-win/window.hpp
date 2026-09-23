@@ -5,6 +5,16 @@
 #include <functional>
 #include <memory>
 
+#if ABY_WIN_ENABLE_GLFW == 0 && ABY_WIN_ENABLE_SDL == 0 && ABY_WIN_ENABLE_QT == 0
+#	error "no window backend enabled"
+#endif
+
+namespace aby::win::external {
+
+	struct Interface;
+
+}
+
 namespace aby::win {
 
 	enum class ERenderBackend {
@@ -16,8 +26,22 @@ namespace aby::win {
 	};
 
 	enum class EWindow {
+#if ABY_WIN_ENABLE_GLFW
 		glfw,
-		sdl
+#endif
+#if ABY_WIN_ENABLE_SDL
+		sdl,
+#endif
+#if ABY_WIN_ENABLE_QT
+		qt
+#endif
+	};
+
+	enum class EPlatform {
+		wayland,
+		x11,
+		cocoa,
+		winapi
 	};
 
 	enum class ECursorMode {
@@ -46,16 +70,17 @@ namespace aby::win {
 	};
 
 	struct NativeWindow {
-		void* backend_window; // GLFWwindow*, SDL_Window*
+		void* backend_window  = nullptr; // [GLFWwindow*|SDL_Window*]
 		/**
 		* @brief The native platform window.
-		* @param win32 HWND
-		* @param macos NSWindow*
+		* @param win32[winapi] HWND
+		* @param macos[cocoa] NSWindow*
 		* @param linux[wayland] std::pair<wl_display*, wl_surface*>*
 		* @param linux[x11] std::pair<Display*, Window>*
 		*/
-		void* platform_window;
-		EWindow backend; // glfw, sdl
+		void* platform_window = nullptr;
+		EPlatform platform    = EPlatform::winapi; // [winapi|x11|wayland|cocoa]
+		EWindow backend       = EWindow::glfw;     // [glfw|sdl|external]
 	};
 
 	/// @brief Loader independent icon structure.
@@ -118,7 +143,7 @@ namespace aby::win {
 		bool visible                  = true;                 // is the window initially visible.
 		bool decorated                = true;                 // does the window have a title bar
 		bool focused                  = true;                 // does the window start focused
-		bool render_doc               = false;                // use x11 over wayland to support vulkan render doc
+		bool render_doc               = false;                // use x11 over wayland to support vulkan render doc (for qt you must set this by env 'QT_QPA_PLATFORM=xcb')
 		bool child                    = false;                // is the window the main window (the one that will initialize and deinitialize the window backend)
 		EWindow window_backend        = EWindow::glfw;        // the windowing library
 		ERenderBackend render_backend = ERenderBackend::none; // the rendering backend
@@ -152,6 +177,7 @@ namespace aby::win {
 		 * @return std::shared_ptr<Window>
 		 */
 		static auto create_shared(const Config& config) -> std::shared_ptr<Window>;
+
 		virtual ~Window()                                                  = default;
 		/**
 		 * @brief Set the window title
@@ -406,6 +432,32 @@ namespace std {
 					break;
 				case aby::win::EWindow::sdl:
 					name = "sdl";
+					break;
+				case aby::win::EWindow::qt:
+					name = "qt";
+					break;
+			}
+
+			return formatter<std::string_view>::format(name, ctx);
+		}
+	};
+
+	template <>
+	struct formatter<aby::win::EPlatform> : formatter<std::string_view> {
+		auto format(aby::win::EPlatform value, format_context& ctx) const {
+			std::string_view name;
+
+			switch (value) {
+				case aby::win::EPlatform::winapi:
+					name = "winapi";
+					break;
+				case aby::win::EPlatform::x11:
+					name = "x11";
+					break;
+				case aby::win::EPlatform::wayland:
+					name = "wayland";
+				case aby::win::EPlatform::cocoa:
+					name = "cocoa";
 					break;
 			}
 

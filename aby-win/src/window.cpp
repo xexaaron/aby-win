@@ -1,8 +1,11 @@
 #include "window.hpp"
 
 #include "backend/glfw/glfw-window.hpp"
+#include "backend/qt/qt-window.hpp"
 #include "backend/sdl/sdl-window.hpp"
 #include "common.hpp"
+
+#include <memory>
 
 namespace aby::win {
 
@@ -12,10 +15,18 @@ namespace aby::win {
 
 	auto Window::create_raw(const Config& config) -> Window* {
 		switch (config.window_backend) {
+#if ABY_WIN_ENABLE_GLFW
 			case EWindow::glfw:
 				return new glfw::Window(config);
+#endif
+#if ABY_WIN_ENABLE_SDL
 			case EWindow::sdl:
 				return new sdl::Window(config);
+#endif
+#if ABY_WIN_ENABLE_QT
+			case EWindow::qt:
+				return new qt::Window(config);
+#endif
 			default:
 				aby_win_assert(false, "unimplemented window backend");
 		}
@@ -24,10 +35,18 @@ namespace aby::win {
 
 	auto Window::create_unique(const Config& config) -> std::unique_ptr<Window> {
 		switch (config.window_backend) {
+#if ABY_WIN_ENABLE_GLFW
 			case EWindow::glfw:
 				return std::make_unique<glfw::Window>(config);
+#endif
+#if ABY_WIN_ENABLE_SDL
 			case EWindow::sdl:
 				return std::make_unique<sdl::Window>(config);
+#endif
+#if ABY_WIN_ENABLE_QT
+			case EWindow::qt:
+				return std::make_unique<qt::Window>(config);
+#endif
 			default:
 				aby_win_assert(false, "unimplemented window backend");
 		}
@@ -36,10 +55,18 @@ namespace aby::win {
 
 	auto Window::create_shared(const Config& config) -> std::shared_ptr<Window> {
 		switch (config.window_backend) {
+#if ABY_WIN_ENABLE_GLFW
 			case EWindow::glfw:
 				return std::make_shared<glfw::Window>(config);
+#endif
+#if ABY_WIN_ENABLE_SDL
 			case EWindow::sdl:
 				return std::make_shared<sdl::Window>(config);
+#endif
+#if ABY_WIN_ENABLE_QT
+			case EWindow::qt:
+				return std::make_shared<qt::Window>(config);
+#endif
 			default:
 				aby_win_assert(false, "unimplemented window backend");
 		}

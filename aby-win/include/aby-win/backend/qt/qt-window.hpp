@@ -1,17 +1,18 @@
 #pragma once
 
-#if ABY_WIN_ENABLE_SDL
+#if ABY_WIN_ENABLE_QT
 
 #	include "window.hpp"
 
 #	include <span>
 #	include <unordered_map>
+#	include <variant>
 
-struct SDL_Window;
-struct SDL_Surface;
-struct SDL_Cursor;
+class QMainWindow;
+class QWindow;
+namespace aby::win::qt {
 
-namespace aby::win::sdl {
+	class EventFilter;
 
 	class ABY_WIN_API Window : public win::Window {
 	public:
@@ -65,50 +66,21 @@ namespace aby::win::sdl {
 		auto visible() const -> bool override;
 		auto fullscreened() -> bool override;
 		auto should_close() const -> bool override;
-
-		template <typename T>
-		static auto dispatch(T& event) -> void {
-			if (event.window() == 0) {
-				for (auto [id, listener] : s_Listeners) {
-					if (listener(event)) {
-						break;
-					}
-				}
-			} else {
-				auto [begin, end] = s_Listeners.equal_range(event.window());
-				for (auto it = begin; it != end; ++it) {
-					if (it->second(event)) {
-						break;
-					}
-				}
-			}
-		}
 	private:
-		uint32_t m_ID                      = 0;
-		bool bShouldClose                  = false;
-		bool bDecorated                    = false;
-		bool bHitFnSet                     = false;
-		bool bChildWindow                  = false;
-		SDL_Window* m_SDL                  = nullptr;
-		SDL_Surface* m_Icon                = nullptr;
-		SDL_Cursor* m_ArrowCursor          = nullptr;
-		SDL_Cursor* m_IBeamCursor          = nullptr;
-		SDL_Cursor* m_CrosshairCursor      = nullptr;
-		SDL_Cursor* m_HandCursor           = nullptr;
-		SDL_Cursor* m_HResizeCursor        = nullptr;
-		SDL_Cursor* m_VResizeCursor        = nullptr;
-		SDL_Cursor* m_NWSEResizeCursor     = nullptr;
-		SDL_Cursor* m_NESWResizeCursor     = nullptr;
-		SDL_Cursor* m_MoveCursor           = nullptr;
-		SDL_Cursor* m_NotAllowedCursor     = nullptr;
-		std::unique_ptr<Monitor> m_Monitor = nullptr;
-		HitTestConfig m_HitTestConfig;
+		auto dispatch(Event& event) -> bool;
+		auto is_child() -> bool;
+		friend class EventFilter;
+	private:
+		std::variant<QWindow*, QMainWindow*> m_QT;
+		std::vector<WindowListener> m_Listeners;
+		bool bMainWindow;
+		bool bShouldClose;
+		EventFilter* m_EventFilter;
 #	ifdef __linux__
 		mutable std::pair<void*, void*> m_NativeHandles;
 #	endif
-		static inline std::unordered_multimap<uint32_t, WindowListener> s_Listeners;
 	};
 
-} // namespace aby::win::sdl
+} // namespace aby::win::qt
 
 #endif

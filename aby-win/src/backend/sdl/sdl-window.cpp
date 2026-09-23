@@ -1,21 +1,24 @@
-#include "backend/sdl/sdl-window.hpp"
+#if ABY_WIN_ENABLE_SDL
 
-#include "SDL3/SDL_clipboard.h"
-#include "SDL3/SDL_events.h"
-#include "SDL3/SDL_hints.h"
-#include "SDL3/SDL_init.h"
-#include "SDL3/SDL_mouse.h"
-#include "SDL3/SDL_mutex.h"
-#include "SDL3/SDL_oldnames.h"
-#include "SDL3/SDL_video.h"
-#include "common.hpp"
+#	include "backend/sdl/sdl-window.hpp"
 
-#include <SDL3/SDL.h>
+#	include "SDL3/SDL_clipboard.h"
+#	include "SDL3/SDL_events.h"
+#	include "SDL3/SDL_hints.h"
+#	include "SDL3/SDL_init.h"
+#	include "SDL3/SDL_mouse.h"
+#	include "SDL3/SDL_mutex.h"
+#	include "SDL3/SDL_oldnames.h"
+#	include "SDL3/SDL_video.h"
+#	include "common.hpp"
+#	include "window.hpp"
 
-#define sdl_window_guard(event, window_id)                  \
-	if (window_id != detail::sdl_get_event_window(event)) { \
-		break;                                              \
-	}
+#	include <SDL3/SDL.h>
+
+#	define sdl_window_guard(event, window_id)                  \
+		if (window_id != detail::sdl_get_event_window(event)) { \
+			break;                                              \
+		}
 
 namespace aby::win::sdl::detail {
 
@@ -724,13 +727,15 @@ namespace aby::win::sdl {
 			.backend         = EWindow::sdl
 		};
 
-#if defined(_WIN32)
+#	if defined(_WIN32)
 		SDL_PropertiesID props = SDL_GetWindowProperties(m_SDL);
 		out.platform_window    = SDL_GetPointerProperty(props, SDL_PROP_WINDOW_WIN32_HWND_POINTER, nullptr);
-#elif defined(__APPLE__)
+		out.platform           = EPlatform::winapi;
+#	elif defined(__APPLE__)
 		SDL_PropertiesID props = SDL_GetWindowProperties(m_SDL);
 		out.platform_window    = SDL_GetPointerProperty(props, SDL_PROP_WINDOW_COCOA_WINDOW_POINTER, nullptr);
-#elif defined(__linux__)
+		out.platform           = EPlatform::cocoa;
+#	elif defined(__linux__)
 		SDL_PropertiesID props = SDL_GetWindowProperties(m_SDL);
 		const char* driver     = SDL_GetCurrentVideoDriver();
 
@@ -751,6 +756,7 @@ namespace aby::win::sdl {
 			};
 
 			out.platform_window = &m_NativeHandles;
+			out.platform        = EPlatform::wayland;
 		} else if (driver && SDL_strcmp(driver, "x11") == 0) {
 			auto* display = SDL_GetPointerProperty(
 			    props,
@@ -769,8 +775,9 @@ namespace aby::win::sdl {
 			};
 
 			out.platform_window = &m_NativeHandles;
+			out.platform        = EPlatform::x11;
 		}
-#endif
+#	endif
 		return out;
 	}
 
@@ -1232,3 +1239,5 @@ namespace aby::win::sdl::detail {
 	}
 
 } // namespace aby::win::sdl::detail
+
+#endif

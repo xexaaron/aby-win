@@ -1,9 +1,11 @@
 #pragma once
 
-#include "window.hpp"
+#if ABY_WIN_ENABLE_SDL
 
-#include <GLFW/glfw3.h>
-#include <span>
+#	include "window.hpp"
+
+#	include <GLFW/glfw3.h>
+#	include <span>
 
 struct GLFWwindow;
 struct GLFWcursor;
@@ -66,9 +68,9 @@ namespace aby::win::glfw {
 
 		auto internal_set_monitor(std::unique_ptr<Monitor>&& monitor) -> void;
 		auto internal_get_hit_test_config() -> HitTestConfig&;
-#ifdef _WIN32
+#	ifdef _WIN32
 		auto internal_get_old_wnd_proc() -> void*;
-#endif
+#	endif
 	private:
 		uint32_t m_ID                      = 0;
 		bool bDecorated                    = true;
@@ -93,12 +95,14 @@ namespace aby::win::glfw {
 		std::unique_ptr<Monitor> m_Monitor = nullptr;
 		std::vector<WindowListener> m_Listeners;
 
-#ifdef _WIN32
+#	ifdef _WIN32
 		void* m_OldWndProc;
-#elif defined(__linux__)
+#	elif defined(__linux__)
 		mutable std::pair<void*, void*> m_NativeHandles;
-#endif
+#	endif
 		static inline bool bGlfwInitialized = false;
 	};
 
 } // namespace aby::win::glfw
+
+#endif
